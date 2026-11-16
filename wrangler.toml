@@ -1,0 +1,11 @@
+name = "opulent-oasis-edge"
+compatibility_date = "2026-06-01"
+pages_build_output_dir = "dist"
+
+[env.production]
+name = "opulent-oasis-production"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "opulent-oasis-db"
+database_id = "3480216c-acbb-47e7-82b3-1e0ef39904e2"
