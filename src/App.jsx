@@ -1,401 +1,650 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import * as THREE from 'three';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sun,
   Moon,
   Search,
-  Calendar,
-  Sliders,
-  Play,
-  Pause,
-  Plus,
   X,
-  ChevronDown,
-  Globe,
-  Shield,
-  Sparkles,
-  Check,
-  Trash2,
-  Edit3,
   ArrowUpRight,
-  MessageCircle,
-  Wind,
-  Lock,
-  Unlock,
-  BarChart3,
-  Layers,
-  Database,
-  Eye,
-  EyeOff,
   Phone,
   Mail,
   MapPin,
-  FileText,
-  AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Compass,
+  Calendar,
+  Users,
+  Sparkles,
+  Plus,
+  ChevronDown,
+  Check,
+  Shield,
+  Wifi,
+  Coffee,
+  Wind,
+  Mountain,
+  Waves,
+  Menu,
+  Eye,
+  Clock,
+  HeartHandshake,
+  SlidersHorizontal
 } from 'lucide-react';
 
-// ============================================================================
-// 0. AWWWARDS TYPOGRAPHY & LIQUID-GLASS STYLING ENGINE
-// ============================================================================
 const WHATSAPP_NUMBER = '919820000000';
 
-const AWWWARDS_STYLE_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+const UNITS_OASIS_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-  .font-editorial {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+  :root {
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .font-sans-ui {
+
+  .font-display {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  .font-mono-tech {
-    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.035em;
   }
 
-  .apple-glass-dark {
-    background: linear-gradient(135deg, rgba(34, 34, 40, 0.78) 0%, rgba(18, 18, 22, 0.68) 100%);
-    backdrop-filter: blur(36px) saturate(190%);
-    -webkit-backdrop-filter: blur(36px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  .font-serif-accent {
+    font-family: 'Instrument Serif', Georgia, serif;
+    letter-spacing: -0.01em;
   }
 
-  .apple-glass-light {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(244, 243, 239, 0.74) 100%);
-    backdrop-filter: blur(36px) saturate(190%);
-    -webkit-backdrop-filter: blur(36px) saturate(190%);
-    border: 1px solid rgba(20, 20, 20, 0.12);
-    box-shadow: 0 12px 32px rgba(20, 20, 20, 0.07), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  .font-body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.01em;
   }
 
-  .apple-pill-dark {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%);
-    backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+  @keyframes marqueeScroll {
+    0% { transform: translate3d(0%, 0, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
   }
 
-  .apple-pill-light {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.85) 0%, rgba(234, 232, 227, 0.65) 100%);
-    backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(20, 20, 20, 0.12);
+  .animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marqueeScroll 28s linear infinite;
   }
 
-  .strata-dot-grid-light {
-    background-color: #f4f3ef;
-    background-image: radial-gradient(rgba(20, 20, 20, 0.14) 1px, transparent 1px);
-    background-size: 16px 16px;
+  .animate-marquee:hover {
+    animation-play-state: paused;
   }
 
-  .strata-dot-grid-dark {
-    background-color: #141417;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
-    background-size: 16px 16px;
+  .unit-card-hover {
+    transition: transform 0.55s var(--ease-out-expo), box-shadow 0.55s var(--ease-out-expo);
+  }
+
+  .unit-card-hover:hover {
+    transform: translateY(-4px);
+  }
+
+  .img-zoom {
+    transition: transform 0.85s var(--ease-out-expo);
+  }
+
+  .group:hover .img-zoom {
+    transform: scale(1.05);
   }
 `;
 
-// ============================================================================
-// 1. INITIAL SEED LISTINGS (FALLBACK & MERGED WITH CLOUDFLARE D1)
-// ============================================================================
 const INITIAL_LISTINGS = [
   {
     id: 'gorai-villa-1',
-    name: 'Casa De Mar — Gorai Beachfront Sanctuary',
+    name: 'Oasis Gorai Coast',
+    subtitle: 'Casa De Mar Beachfront Sanctuary',
     locationName: 'Gorai Coast',
     country: 'India',
     region: 'North Mumbai Coast, Maharashtra',
+    address: 'Plot 14, Gorai Casuarina Drive, North Mumbai 400092',
+    statusBadge: 'Move-in / Book Ready',
+    accentColor: '#d6c5b3',
+    cardBgDark: 'bg-[#151519]',
     category: 'Stay',
-    subType: 'Villa',
+    subType: 'Private Villa',
     price: '₹32,000 / night',
     numericPrice: 32000,
     lat: 19.24,
     lng: 72.78,
-    altitude: '12m ASL',
     duration: 'Min 2 Nights',
     groupSize: 'Up to 10 Guests',
-    terrainType: 'Coastal Palm Sanctuary',
-    baseIndex: 9.2,
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-    description: 'An architectural Portuguese-inspired courtyard villa tucked behind private casuarina groves on Gorai coast.',
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
+    gallery: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description:
+      'An architectural Portuguese-inspired courtyard sanctuary tucked behind private casuarina groves where the Arabian Sea meets unspoiled coastal silence.',
+    proximities: [
+      { time: "02'", label: 'Walk to private Gorai beachfront' },
+      { time: "15'", label: 'Ferry transfer from Marve / Borivali' },
+      { time: "05'", label: 'To Global Vipassana Pagoda' },
+      { time: "45'", label: 'Drive from Mumbai International Airport' },
+      { time: "01'", label: 'To private palm orchard trail' },
+      { time: "10'", label: 'To artisan coastal seafood tavernas' }
+    ],
+    tiers: [
+      {
+        id: 'kick',
+        name: 'Kick Suite',
+        tagline: 'Effortless coastal escape for couples & solo creatives.',
+        price: '₹24,000 / night',
+        size: '85 m² Suite',
+        bed: 'King Canopy Bed',
+        perks: ['Private Courtyard', 'High-Speed Starlink WiFi', 'Artisan Breakfast', 'Plunge Pool Access']
+      },
+      {
+        id: 'boost',
+        name: 'Boost Pavilion',
+        tagline: 'Upper-deck sea views with private wrap-around veranda.',
+        price: '₹32,000 / night',
+        size: '140 m² Pavilion',
+        bed: '2 King Suites',
+        perks: ['Oceanfront Balcony', 'Private Butler', 'Outdoor Rain Shower', 'Sunset High-Tea']
+      },
+      {
+        id: 'flex',
+        name: 'Flex Villa',
+        tagline: 'Full 3-bedroom wing with private lap pool & chef kitchen.',
+        price: '₹44,000 / night',
+        size: '260 m² Wing',
+        bed: '3 King Suites',
+        perks: ['Private Heated Pool', 'Dedicated Live-In Chef', 'Cinema Lounge', 'Bonfire Deck']
+      },
+      {
+        id: 'vibe',
+        name: 'Vibe Estate',
+        tagline: 'Entire 5-bedroom coastal estate reserved exclusively for your group.',
+        price: '₹62,000 / night',
+        size: '450 m² Full Estate',
+        bed: '5 Luxury Suites (Up to 12 Guests)',
+        perks: ['100% Estate Buyout', 'Private Speedboat Transfer', 'All-Inclusive Gourmet Meals', '24/7 Concierge Security']
+      }
+    ],
     published: true
   },
   {
     id: 'alibaug-villa-1',
-    name: 'The Banyan Glasshouse — Alibaug Sanctuary',
+    name: 'Oasis Alibaug',
+    subtitle: 'The Banyan Glasshouse & Jetty',
     locationName: 'Alibaug',
     country: 'India',
     region: 'Mandwa & Awas, Raigad Coast',
+    address: 'Awas Sanctuary Road, Near Mandwa Jetty, Alibaug 402201',
+    statusBadge: 'Signature Estate',
+    accentColor: '#9eb393',
+    cardBgDark: 'bg-[#131815]',
     category: 'Stay',
-    subType: 'Villa',
+    subType: 'Private Estate',
     price: '₹48,000 / night',
     numericPrice: 48000,
     lat: 18.64,
     lng: 72.87,
-    altitude: '15m ASL',
     duration: '2–7 Nights',
     groupSize: 'Up to 12 Guests',
-    terrainType: 'Tropical Mango Estate',
-    baseIndex: 9.5,
-    image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80',
-    description: '20 minutes by private speedboat from the Gateway of India, spanning 3 acres of heirloom mango orchards.',
-    published: true
-  },
-  {
-    id: 'sahyadri-trek-1',
-    name: 'Harishchandragad & Kokankada Cliff Crest Trek',
-    locationName: 'Sahyadri Range',
-    country: 'India',
-    region: 'Western Ghats, Maharashtra',
-    category: 'Trek',
-    subType: 'Mountains',
-    price: '₹14,500 / person',
-    numericPrice: 14500,
-    lat: 19.38,
-    lng: 73.77,
-    altitude: '1,424m ASL',
-    duration: '3 Days / 2 Nights',
-    groupSize: 'Max 8 Explorers',
-    terrainType: 'Basalt Cliff Overhang',
-    baseIndex: 9.3,
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
-    description: 'Ascend ancient rock-cut steps to the 1,424m Kokankada vertical basalt amphitheater.',
-    published: true
-  },
-  {
-    id: 'udaipur-tour-1',
-    name: 'Aravalli Royal Heritage & Thar Desert Odyssey',
-    locationName: 'Udaipur & Thar',
-    country: 'India',
-    region: 'Rajasthan Royal Circuit',
-    category: 'Tour',
-    subType: 'Cultural',
-    price: '₹95,000 / person',
-    numericPrice: 95000,
-    lat: 24.58,
-    lng: 73.68,
-    altitude: '598m ASL',
-    duration: '6 Days / 5 Nights',
-    groupSize: 'Private Charter (2–8)',
-    terrainType: 'Lake Palaces & Dunes',
-    baseIndex: 9.6,
-    image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80',
-    description: 'Private vintage car convoys, lakeside palace dining, and starlit tented camps across the Thar desert.',
-    published: true
-  },
-  {
-    id: 'spiti-trek-1',
-    name: 'Pin Parvati & Spiti High-Altitude Monastery Traverse',
-    locationName: 'Spiti Valley',
-    country: 'India',
-    region: 'Himachal Trans-Himalaya',
-    category: 'Trek',
-    subType: 'Himalayan',
-    price: '₹64,000 / person',
-    numericPrice: 64000,
-    lat: 32.24,
-    lng: 78.03,
-    altitude: '4,270m ASL',
-    duration: '8 Days / 7 Nights',
-    groupSize: 'Max 6 Explorers',
-    terrainType: 'High Cold Desert',
-    baseIndex: 9.4,
-    image: 'https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1200&q=80',
-    description: 'Traverse ancient silk-route gompas perched on sheer canyon spires with luxury geodesic basecamps.',
-    published: true
-  },
-  {
-    id: 'paro-tour-1',
-    name: 'Kingdom of the Thunder Dragon Sacred Valley Tour',
-    locationName: 'Paro Valley',
-    country: 'Bhutan',
-    region: 'Paro, Thimphu & Punakha',
-    category: 'Tour',
-    subType: 'Spiritual',
-    price: '₹1,85,000 / person',
-    numericPrice: 185000,
-    lat: 27.42,
-    lng: 89.41,
-    altitude: '3,120m ASL',
-    duration: '7 Days / 6 Nights',
-    groupSize: 'Up to 6 Guests',
-    terrainType: 'Eastern Himalayan Pine',
-    baseIndex: 9.8,
-    image: 'https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&w=1200&q=80',
-    description: 'Helicopter transfers through misty Himalayan valleys and private blessings at Taktsang Monastery.',
+    image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=85',
+    gallery: [
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1400&q=85',
+      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description:
+      'Twenty minutes by private speedboat from the Gateway of India, spanning three acres of heirloom mango orchards with a cantilevered lap pool and farm-to-table chef.',
+    proximities: [
+      { time: "20'", label: 'By private speedboat from Mumbai Gateway' },
+      { time: "08'", label: 'Chauffeur drive from Mandwa Jetty' },
+      { time: "04'", label: 'To Awas & Kihim secluded beaches' },
+      { time: "01'", label: 'Inside 3-acre private mango orchard' },
+      { time: "05'", label: 'To organic coastal dining & cafes' },
+      { time: "12'", label: 'To Alibaug helipad' }
+    ],
+    tiers: [
+      {
+        id: 'kick',
+        name: 'Kick Glass Loft',
+        tagline: 'Floor-to-ceiling glass suite overlooking heirloom mango groves.',
+        price: '₹36,000 / night',
+        size: '110 m² Loft',
+        bed: '1 Emperor Suite',
+        perks: ['Private Orchard Deck', 'Outdoor Copper Tub', 'Starlink WiFi', 'Farm Breakfast']
+      },
+      {
+        id: 'boost',
+        name: 'Boost Pool Villa',
+        tagline: '2-suite glasshouse pavilion with direct infinity pool access.',
+        price: '₹48,000 / night',
+        size: '210 m² Villa',
+        bed: '2 Emperor Suites',
+        perks: ['25m Lap Pool', 'Mandwa Jetty Chauffeur', 'Private Chef Service', 'Evening Sundowners']
+      },
+      {
+        id: 'flex',
+        name: 'Flex Orchard Wing',
+        tagline: '4-bedroom architectural wing with private spa & padel court.',
+        price: '₹68,000 / night',
+        size: '380 m² Wing',
+        bed: '4 Suites (8 Guests)',
+        perks: ['Private Padel Court', 'Cedar Steam & Sauna', 'Private Barista & Chef', 'Speedboat Charter Included']
+      },
+      {
+        id: 'vibe',
+        name: 'Vibe Full Sanctuary',
+        tagline: 'Complete 3-acre estate buyout for landmark celebrations & retreats.',
+        price: '₹95,000 / night',
+        size: '650 m² Estate (3 Acres)',
+        bed: '6 Suites (Up to 14 Guests)',
+        perks: ['Full 3-Acre Exclusivity', 'Roundtrip Speedboat Transfers', 'Bespoke Tasting Menus', 'Dedicated Concierge Team']
+      }
+    ],
     published: true
   },
   {
     id: 'zermatt-stay-1',
-    name: 'Chalet Matterhorn Zenith — Ski-In Alpine Sanctuary',
+    name: 'Oasis Zermatt Alps',
+    subtitle: 'Chalet Matterhorn Zenith',
     locationName: 'Zermatt Alps',
     country: 'Switzerland',
     region: 'Valais Canton, Swiss Alps',
+    address: 'Omnia Ridge Trail 8, 3920 Zermatt, Switzerland',
+    statusBadge: 'Alpine Winter / Summer',
+    accentColor: '#d49a7b',
+    cardBgDark: 'bg-[#191514]',
     category: 'Stay',
-    subType: 'Chalet',
+    subType: 'Alpine Chalet',
     price: '₹2,10,000 / night',
     numericPrice: 210000,
     lat: 46.02,
     lng: 7.74,
-    altitude: '1,620m ASL',
     duration: 'Min 4 Nights',
     groupSize: 'Up to 10 Guests',
-    terrainType: 'Glacial Alpine Peak',
-    baseIndex: 9.9,
-    image: 'https://images.unsplash.com/photo-1502784444187-359ac186c5bb?auto=format&fit=crop&w=1200&q=80',
-    description: 'Unobstructed glass-walled cedar spa overlooking the east face of the Matterhorn.',
+    image: 'https://images.unsplash.com/photo-1502784444187-359ac186c5bb?auto=format&fit=crop&w=1400&q=85',
+    gallery: [
+      'https://images.unsplash.com/photo-1502784444187-359ac186c5bb?auto=format&fit=crop&w=1400&q=85',
+      'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description:
+      'Suspended high above Zermatt village with a glass-walled cedar thermal spa, private funicular access, and unobstructed views of the Matterhorn east face.',
+    proximities: [
+      { time: "01'", label: 'Ski-in / Ski-out piste access' },
+      { time: "03'", label: 'Private rock-tunnel funicular to village' },
+      { time: "05'", label: 'To Zermatt Heliport for glacier flights' },
+      { time: "02'", label: 'To Michelin-starred alpine dining' },
+      { time: "08'", label: 'To Gornergrat mountain railway' },
+      { time: "00'", label: 'Direct unobstructed Matterhorn view' }
+    ],
+    tiers: [
+      {
+        id: 'kick',
+        name: 'Kick Alpine Loft',
+        tagline: 'Warm larch-wood suite with wood-burning fireplace & Matterhorn terrace.',
+        price: '₹1,45,000 / night',
+        size: '95 m² Alpine Suite',
+        bed: '1 King Alpine Bed',
+        perks: ['Matterhorn Balcony', 'Ski Room & Boot Heaters', 'Thermal Spa Access', 'Daily Alpine Breakfast']
+      },
+      {
+        id: 'boost',
+        name: 'Boost Glacier Residence',
+        tagline: 'Two-level chalet residence with outdoor heated hydro-pool.',
+        price: '₹2,10,000 / night',
+        size: '190 m² Residence',
+        bed: '3 Suites (6 Guests)',
+        perks: ['Outdoor Heated Jacuzzi', 'Private Ski Guide (1 Day)', 'Wine Cellar Selection', 'Chauffeur Electro-Taxi']
+      },
+      {
+        id: 'flex',
+        name: 'Flex Penthouse',
+        tagline: 'Top-floor glass penthouse with private sauna & Michelin-trained chef.',
+        price: '₹2,85,000 / night',
+        size: '310 m² Penthouse',
+        bed: '4 Suites (8 Guests)',
+        perks: ['Private Finnish Sauna', 'In-Chalet Michelin Chef', 'Private Funicular Key', 'Heli-Ski Priority']
+      },
+      {
+        id: 'vibe',
+        name: 'Vibe Whole Chalet',
+        tagline: 'Complete 5-floor alpine sanctuary with private spa, cinema & staff.',
+        price: '₹3,90,000 / night',
+        size: '540 m² Full Chalet',
+        bed: '5 Suites (10 Guests)',
+        perks: ['Full Chalet Exclusivity', 'Helicopter Airport Transfer', 'All-Inclusive Fine Dining', 'Dedicated Butler & Masseuse']
+      }
+    ],
     published: true
   },
   {
-    id: 'lofoten-tour-1',
-    name: 'Lofoten Arctic Aurora & Fjord Yacht Expedition',
-    locationName: 'Lofoten',
-    country: 'Norway',
-    region: 'Nordland Arctic Circle',
+    id: 'paro-tour-1',
+    name: 'Oasis Paro Valley',
+    subtitle: 'Sacred Valleys of Bhutan Odyssey',
+    locationName: 'Paro Valley',
+    country: 'Bhutan',
+    region: 'Paro, Thimphu & Punakha',
+    address: 'Paro River Sanctuary & Tiger’s Nest Trailhead, Bhutan',
+    statusBadge: 'Curated Expedition',
+    accentColor: '#d6c5b3',
+    cardBgDark: 'bg-[#16151a]',
     category: 'Tour',
-    subType: 'Expedition',
-    price: '₹2,40,000 / person',
-    numericPrice: 240000,
-    lat: 68.2,
-    lng: 13.88,
-    altitude: '0–650m ASL',
-    duration: '5 Days / 4 Nights',
-    groupSize: 'Max 8 Guests',
-    terrainType: 'Arctic Granite Fjord',
-    baseIndex: 9.7,
-    image: 'https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=1200&q=80',
-    description: 'Sail aboard an ice-class explorer yacht beneath dancing solar auroras and sheer granite peaks.',
+    subType: 'Helicopter & Monastery Sojourn',
+    price: '₹1,85,000 / guest',
+    numericPrice: 185000,
+    lat: 27.42,
+    lng: 89.41,
+    duration: '7 Days / 6 Nights',
+    groupSize: 'Up to 6 Guests',
+    image: 'https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&w=1400&q=85',
+    gallery: [
+      'https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&w=1400&q=85',
+      'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description:
+      'Private helicopter transfers through pine-scented Himalayan valleys, intimate monastery blessings, and traditional riverfront hot-stone baths overlooking Punakha Dzong.',
+    proximities: [
+      { time: "12'", label: 'From Paro International Airport' },
+      { time: "20'", label: 'To Taktsang (Tiger’s Nest) trailhead' },
+      { time: "25'", label: 'Scenic helicopter flight to Punakha' },
+      { time: "05'", label: 'To ancient Kyichu Lhakhang temple' },
+      { time: "01'", label: 'Private riverfront hot-stone bathhouse' },
+      { time: "00'", label: 'All Bhutan SDF & royal permits included' }
+    ],
+    tiers: [
+      {
+        id: 'kick',
+        name: 'Kick Cultural Trail',
+        tagline: '5-day private guided journey across Paro & Thimphu sanctuaries.',
+        price: '₹1,35,000 / guest',
+        size: '5 Days / 4 Nights',
+        bed: 'Luxury Valley Lodges',
+        perks: ['Private SUV & Historian Guide', 'All Bhutan Visas & SDF', 'Tiger’s Nest Guided Ascent', 'Hot-Stone River Bath']
+      },
+      {
+        id: 'boost',
+        name: 'Boost Punakha Sojourn',
+        tagline: '7-day circuit adding Punakha Valley & private monastery blessings.',
+        price: '₹1,85,000 / guest',
+        size: '7 Days / 6 Nights',
+        bed: 'Boutique Heritage Suites',
+        perks: ['Private Monk Blessing', 'Archery & Culinary Masterclass', 'All-Inclusive Dining', 'Dedicated Photographer']
+      },
+      {
+        id: 'flex',
+        name: 'Flex Heli-Odyssey',
+        tagline: 'Includes private Airbus H130 helicopter transfers between valleys.',
+        price: '₹2,75,000 / guest',
+        size: '7 Days + Heli-Charter',
+        bed: 'Six Senses / Amankora Tier',
+        perks: ['Inter-Valley Helicopter Flights', 'High-Altitude Champagne Picnic', 'Private Spa Rituals', 'VIP Airport Tarmac Meet']
+      },
+      {
+        id: 'vibe',
+        name: 'Vibe Royal Charter',
+        tagline: 'Bespoke 10-day Himalayan expedition with private jet connectivity.',
+        price: '₹3,95,000 / guest',
+        size: '10 Days / 9 Nights',
+        bed: 'Presidential Sanctuary Villas',
+        perks: ['Full Private Helicopter Charter', 'Private Audience with Scholars', 'Custom Glamping in Phobjikha', '24/7 Expedition Doctor & Concierge']
+      }
+    ],
+    published: true
+  },
+  {
+    id: 'sahyadri-trek-1',
+    name: 'Oasis Sahyadri Crest',
+    subtitle: 'Kokankada Cliff & Star-Bed Expedition',
+    locationName: 'Sahyadri Range',
+    country: 'India',
+    region: 'Western Ghats, Maharashtra',
+    address: 'Harishchandragad Base Sanctuary, Ahmednagar / Thane Border',
+    statusBadge: 'Guided Alpine Trek',
+    accentColor: '#9eb393',
+    cardBgDark: 'bg-[#121715]',
+    category: 'Trek',
+    subType: 'Mountain Trek',
+    price: '₹14,500 / guest',
+    numericPrice: 14500,
+    lat: 19.38,
+    lng: 73.77,
+    duration: '3 Days / 2 Nights',
+    groupSize: 'Max 8 Explorers',
+    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1400&q=85',
+    gallery: [
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1400&q=85',
+      'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80'
+    ],
+    description:
+      'Ascend ancient rock-cut steps through cloud forests to the dramatic 1,424m Kokankada vertical basalt amphitheater with private luxury geodesic dome camping.',
+    proximities: [
+      { time: "3.5h", label: 'Private 4x4 drive from Mumbai / Pune' },
+      { time: "1424m", label: 'Kokankada cliff crest elevation' },
+      { time: "15'", label: 'Walk from summit camp to Kedareshwar Cave' },
+      { time: "01'", label: 'From heated geodesic star-bed domes' },
+      { time: "100%", label: 'Porter & expedition chef supported' },
+      { time: "24/7", label: 'Satellite telemetry & wilderness medic' }
+    ],
+    tiers: [
+      {
+        id: 'kick',
+        name: 'Kick Summit Trek',
+        tagline: 'Weekend guided ascent with luxury alpine dome accommodation.',
+        price: '₹14,500 / guest',
+        size: '3 Days / 2 Nights',
+        bed: 'Geodesic Summit Dome',
+        perks: ['Certified Mountaineer Guide', 'All Gourmet Camp Meals', 'Porter Gear Support', 'Cliffside Sunrise Coffee']
+      },
+      {
+        id: 'boost',
+        name: 'Boost Private Pod',
+        tagline: 'Private heated star-bed dome + roundtrip Mumbai 4x4 transfer.',
+        price: '₹22,000 / guest',
+        size: '3 Days + Private 4x4',
+        bed: 'Private Star-Bed Dome',
+        perks: ['Door-to-Door Mumbai SUV', 'Heated Bedding & Hot Shower', 'Astrophotography Session', 'Private Campfire Chef']
+      },
+      {
+        id: 'flex',
+        name: 'Flex Ridge Traverse',
+        tagline: 'Extended 4-day Western Ghats ridge expedition with base villa stay.',
+        price: '₹34,000 / guest',
+        size: '4 Days / 3 Nights',
+        bed: '2N Dome + 1N Forest Villa',
+        perks: ['Post-Trek Recovery Spa', 'Private Expedition Team', 'Drone Reel Documentation', 'Gourmet Wilderness Dining']
+      },
+      {
+        id: 'vibe',
+        name: 'Vibe Private Charter',
+        tagline: 'Exclusive private group buyout of the entire summit camp.',
+        price: '₹98,000 / group',
+        size: 'Up to 8 Explorers',
+        bed: '4 Private Luxury Domes',
+        perks: ['100% Camp Exclusivity', 'Custom Pace & Route', 'Live Acoustic Sundowner', 'Dedicated Wilderness Medic']
+      }
+    ],
+    published: true
+  },
+  {
+    id: 'spiti-trek-1',
+    name: 'Oasis Spiti Valley',
+    subtitle: 'Trans-Himalayan Monastery & Glacier Traverse',
+    locationName: 'Spiti Valley',
+    country: 'India',
+    region: 'Himachal Trans-Himalaya',
+    address: 'Kaza & Key Monastery Sanctuary Circuit, Himachal Pradesh',
+    statusBadge: 'High-Altitude',
+    accentColor: '#d49a7b',
+    cardBgDark: 'bg-[#181513]',
+    category: 'Trek',
+    subType: 'Himalayan Trek',
+    price: '₹64,000 / guest',
+    numericPrice: 64000,
+    lat: 32.24,
+    lng: 78.03,
+    duration: '8 Days / 7 Nights',
+    groupSize: 'Max 6 Explorers',
+    image: 'https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1400&q=85',
+    gallery: [
+      'https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1400&q=85'
+    ],
+    description:
+      'Walk ancient silk-route trails connecting thousand-year-old cliffside gompas with heated geodesic dome camps under crystalline Himalayan skies.',
+    proximities: [
+      { time: "4166m", label: 'Key Monastery altitude sanctuary' },
+      { time: "100%", label: 'Supplemental oxygen & medic vehicle' },
+      { time: "15'", label: 'To Chicham suspension gorge' },
+      { time: "05'", label: 'To Langza fossil valley meadows' },
+      { time: "01'", label: 'Private solar-heated boutique lodges' },
+      { time: "24/7", label: 'Dedicated expedition 4x4 support convoy' }
+    ],
+    tiers: [
+      {
+        id: 'kick',
+        name: 'Kick Valley Explorer',
+        tagline: 'Guided 8-day expedition with boutique mud-walled solar lodges.',
+        price: '₹64,000 / guest',
+        size: '8 Days / 7 Nights',
+        bed: 'Boutique Himalayan Lodges',
+        perks: ['4x4 Expedition Convoy', 'Acclimatization Protocol', 'Monastery Private Access', 'All Organic Meals']
+      },
+      {
+        id: 'boost',
+        name: 'Boost Glamping Crest',
+        tagline: 'Upgraded heated geodesic domes at Chandratal & Langza.',
+        price: '₹88,000 / guest',
+        size: '8 Days Luxury Glamping',
+        bed: 'Heated Geodesic Suites',
+        perks: ['En-Suite Heated Domes', 'Private Stargazing Telescope', 'Personal Sherpa Guide', 'Himalayan Herbal Spa']
+      }
+    ],
     published: true
   }
 ];
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MARQUEE_ITEMS = [
+  'All-Inclusive Sanctuaries',
+  'Private Speedboat & Heli Transfers',
+  '24/7 Concierge & Security',
+  'Private Chef & Farm-to-Table Dining',
+  'Heated Infinity Pools & Cedar Spas',
+  'Guided Alpine & Himalayan Expeditions',
+  'Zero Hidden Fees — One Seamless Tariff',
+  'Starlink High-Speed Connectivity'
+];
 
-// Helper to convert lat/lng to 3D sphere coordinates
-function latLngToVector3(lat, lng, radius) {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lng + 180) * (Math.PI / 180);
-  const x = -(radius * Math.sin(phi) * Math.cos(theta));
-  const z = radius * Math.sin(phi) * Math.sin(theta);
-  const y = radius * Math.cos(phi);
-  return new THREE.Vector3(x, y, z);
-}
-
-// Procedural texture generator for the 3D Globe
-function createProceduralGlobeTexture(surfaceStyle, visualMode, isDay) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-
-  // Ocean base
-  if (surfaceStyle === 'sat') {
-    const grad = ctx.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0, '#0c1f33');
-    grad.addColorStop(0.5, '#12314d');
-    grad.addColorStop(1, '#091929');
-    ctx.fillStyle = grad;
-  } else if (surfaceStyle === 'topo') {
-    ctx.fillStyle = '#151b18';
-  } else if (surfaceStyle === 'night') {
-    ctx.fillStyle = '#07080c';
-  } else {
-    ctx.fillStyle = isDay ? '#d8d5cc' : '#181a20';
+const AMENITY_SHOWCASE = [
+  {
+    id: 'chef',
+    label: 'Private Chef & Butler',
+    title: 'Bespoke Culinary Craft in Every Sanctuary',
+    desc: 'Wake up to coastal Konkan feasts, alpine fondue, or Himalayan organic breakfasts prepared fresh in your private kitchen.',
+    img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1000&q=80'
+  },
+  {
+    id: 'pool',
+    label: 'Heated Infinity Pools',
+    title: 'Temperature-Controlled Waters Facing the Horizon',
+    desc: 'Swim at dawn or beneath the stars in ozone-purified lap pools cantilevered over orchards, beaches, and mountain valleys.',
+    img: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1000&q=80'
+  },
+  {
+    id: 'charter',
+    label: 'Speedboat & Heli Access',
+    title: 'Skip the Traffic. Arrive Effortlessly.',
+    desc: 'From private speedboats at the Gateway of India to Airbus helicopters in Paro and Zermatt, your journey begins the moment you step out.',
+    img: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1000&q=80'
+  },
+  {
+    id: 'spa',
+    label: 'Cedar Spa & Hot-Stone Baths',
+    title: 'Restorative Rituals After Every Expedition',
+    desc: 'Unwind in glass-walled Finnish saunas, traditional Bhutanese river-stone baths, and private ayurvedic recovery pavilions.',
+    img: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=80'
+  },
+  {
+    id: 'workspace',
+    label: 'Starlink & Creative Studios',
+    title: 'Work or Unplug From the Edge of the World',
+    desc: 'Every villa and basecamp is equipped with redundant high-speed satellite internet, ergonomic acoustic studies, and power backup.',
+    img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80'
   }
-  ctx.fillRect(0, 0, 1024, 512);
+];
 
-  // Graticule grid
-  ctx.strokeStyle = surfaceStyle === 'sat' ? 'rgba(120, 200, 255, 0.12)' : 'rgba(255, 255, 255, 0.07)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= 1024; x += 64) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, 512);
-    ctx.stroke();
+const FAQ_DATA = [
+  {
+    category: 'About Opulent Oasis',
+    q: 'What does "All-Inclusive Sanctuary Living" mean at Opulent Oasis?',
+    a: 'Just like our modular Oasis concept, one transparent tariff covers your entire experience: private villa or expedition dome, on-site chef & butler team, daily breakfast and sundowners, 24/7 security, high-speed WiFi, and full access to wellness and spa spaces. No hidden resort fees or surprises.'
+  },
+  {
+    category: 'Booking & Charters',
+    q: 'How can I book a Sanctuary, Tour, or Trek?',
+    a: 'Click "Book Your Oasis" anywhere on the site to choose your sanctuary, preferred tier (Kick, Boost, Flex, or Vibe), and dates. Our concierge team confirms availability immediately via WhatsApp or phone and arranges all transfers.'
+  },
+  {
+    category: 'Booking & Charters',
+    q: 'Can I schedule a virtual walkthrough or private preview before booking?',
+    a: 'Absolutely! In our booking drawer, simply select "Remote Video Walkthrough" or "On-Site Preview". Our sanctuary managers will host a live video tour of the villa, orchard, or expedition basecamp.'
+  },
+  {
+    category: 'Safety & Operations',
+    q: 'What security and medical measures are in place for stays and treks?',
+    a: 'Every coastal and alpine estate features 24/7 discreet perimeter security, smart keyless access, and on-call medical support. All high-altitude treks include certified mountaineering leaders, satellite communication, and supplemental oxygen.'
+  },
+  {
+    category: 'Pricing & Flexibility',
+    q: 'What is your weather-window & rescheduling policy?',
+    a: 'All reservations include flexible date-shift protection up to 7 days prior to arrival, and helicopter/speedboat charters include automatic backup ground luxury SUV convoys in case of inclement weather.'
   }
-  for (let y = 0; y <= 512; y += 64) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(1024, y);
-    ctx.stroke();
-  }
+];
 
-  // Simplified stylized continent polygons (Equirectangular approximations)
-  const continents = [
-    // Africa
-    [[480, 190], [560, 185], [615, 240], [595, 345], [550, 395], [515, 340], [465, 260]],
-    // Eurasia
-    [[470, 175], [520, 100], [640, 85], [820, 105], [875, 185], [790, 255], [725, 295], [690, 235], [635, 245], [580, 190]],
-    // India Subcontinent highlight
-    [[695, 215], [745, 220], [725, 305], [695, 255]],
-    // North America
-    [[120, 95], [295, 85], [335, 190], [255, 245], [175, 195]],
-    // South America
-    [[275, 265], [355, 285], [345, 425], [295, 440], [265, 335]],
-    // Australia
-    [[775, 335], [885, 335], [890, 415], [785, 405]]
-  ];
-
-  ctx.fillStyle =
-    surfaceStyle === 'sat'
-      ? '#2d4c3b'
-      : surfaceStyle === 'topo'
-      ? '#28362c'
-      : surfaceStyle === 'night'
-      ? '#141824'
-      : isDay
-      ? '#b8b4a8'
-      : '#262932';
-  ctx.strokeStyle =
-    surfaceStyle === 'sat'
-      ? 'rgba(134, 239, 172, 0.45)'
-      : 'rgba(255, 255, 255, 0.25)';
-  ctx.lineWidth = 1.8;
-
-  continents.forEach((poly) => {
-    ctx.beginPath();
-    poly.forEach(([px, py], idx) => {
-      if (idx === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  });
-
-  // Dot matrix / radial vector dashes across continents
-  ctx.fillStyle =
-    visualMode === 'Color'
-      ? 'rgba(74, 222, 128, 0.45)'
-      : 'rgba(255, 255, 255, 0.28)';
-  for (let x = 16; x < 1024; x += 18) {
-    for (let y = 16; y < 512; y += 18) {
-      if (visualMode === 'Radial') {
-        ctx.fillRect(x, y, 4, 1.5);
-      } else if (visualMode === 'Circles') {
-        ctx.beginPath();
-        ctx.arc(x, y, 2, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(x, y, 2, 2);
-      }
-    }
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
-}
-
-// ============================================================================
-// 2. MAIN APPLICATION COMPONENT
-// ============================================================================
 export default function App() {
   const [isDay, setIsDay] = useState(false);
   const [currentPage, setCurrentPage] = useState('home');
   const [listings, setListings] = useState(INITIAL_LISTINGS);
-  const [d1Connected, setD1Connected] = useState(false);
+  const [activeUnit, setActiveUnit] = useState(INITIAL_LISTINGS[0]);
+  const [activeTierIndex, setActiveTierIndex] = useState(1);
+  const [activeGalleryIdx, setActiveGalleryIdx] = useState(0);
 
-  // Guaranteed Tailwind CSS Runtime Loader (ensures styling works even if index.html lacks the script tag)
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [navDropdownOpen, setNavDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeAmenityId, setActiveAmenityId] = useState('chef');
+  const [activeFaqCategory, setActiveFaqCategory] = useState('All');
+  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+
+  const [bookingDrawerOpen, setBookingDrawerOpen] = useState(false);
+  const [hostModalOpen, setHostModalOpen] = useState(false);
+  const [hostPasscode, setHostPasscode] = useState('');
+  const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
+  const [hostPasscodeError, setHostPasscodeError] = useState('');
+
+  const [bookingForm, setBookingForm] = useState({
+    selectedUnitName: 'Oasis Alibaug — The Banyan Glasshouse',
+    unitTier: 'Boost Pavilion',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    guestType: 'Couple / Friends',
+    tourType: 'Direct Reservation',
+    dates: '',
+    notes: '',
+    gdprConsent: true
+  });
+
+  const [newListing, setNewListing] = useState({
+    name: '',
+    subtitle: '',
+    locationName: '',
+    country: 'India',
+    region: '',
+    category: 'Stay',
+    subType: 'Private Villa',
+    price: '₹45,000 / night',
+    numericPrice: 45000,
+    duration: 'Min 2 Nights',
+    groupSize: 'Up to 8 Guests',
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=85',
+    description: ''
+  });
+  const [savingToD1, setSavingToD1] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState('');
+
   useEffect(() => {
     const existingScript = document.querySelector('script[src*="tailwindcss"]');
     if (!existingScript) {
@@ -406,319 +655,80 @@ export default function App() {
     }
   }, []);
 
-  // Filter & Search States
-  const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [maxPriceFilter, setMaxPriceFilter] = useState(250000);
-  const [selectedCountry, setSelectedCountry] = useState('All Countries');
-
-  // Globe & Telemetry States
-  const [surfaceStyle, setSurfaceStyle] = useState('sat'); // 'sat' | 'topo' | 'night' | 'map'
-  const [visualMode, setVisualMode] = useState('Radial'); // 'Radial' | 'Color' | 'Circles' | 'Dots'
-  const [aqiOn, setAqiOn] = useState(false);
-  const [sunlightOn, setSunlightOn] = useState(false);
-  const [weatherOn, setWeatherOn] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(0.5);
-  const [selectedMonth, setSelectedMonth] = useState(10); // Nov default
-  const [isPlayingMonths, setIsPlayingMonths] = useState(false);
-
-  // Modals & Interactive Selections
-  const [selectedLocationHub, setSelectedLocationHub] = useState(null);
-  const [activeExperience, setActiveExperience] = useState(null);
-  const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
-  const [hostModalOpen, setHostModalOpen] = useState(false);
-  const [hostPasscode, setHostPasscode] = useState('');
-  const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
-  const [hostPasscodeError, setHostPasscodeError] = useState('');
-
-  // New Listing Form State (Saves to Cloudflare D1)
-  const [newListing, setNewListing] = useState({
-    name: '',
-    locationName: '',
-    country: 'India',
-    region: '',
-    category: 'Stay',
-    subType: 'Villa',
-    price: '₹45,000 / night',
-    numericPrice: 45000,
-    lat: 19.07,
-    lng: 72.87,
-    altitude: '25m ASL',
-    duration: 'Min 2 Nights',
-    groupSize: 'Up to 8 Guests',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-    description: ''
-  });
-  const [savingToD1, setSavingToD1] = useState(false);
-  const [saveSuccessMessage, setSaveSuccessMessage] = useState('');
-
-  // Inquiry Form State
-  const [inquiryForm, setInquiryForm] = useState({
-    name: '',
-    phone: '',
-    destination: 'Gorai Coast / Alibaug',
-    dates: 'Nov 14–18',
-    guests: '2 Guests',
-    notes: ''
-  });
-
-  // 3D Globe Refs & Projected Beacons
-  const mountRef = useRef(null);
-  const globeGroupRef = useRef(null);
-  const cameraRef = useRef(null);
-  const targetRotationRef = useRef({ x: 0.32, y: -2.15 });
-  const isDraggingRef = useRef(false);
-  const prevPointerRef = useRef({ x: 0, y: 0 });
-  const [projectedBeacons, setProjectedBeacons] = useState([]);
-
-  // Fetch Live Listings from Cloudflare D1 Edge API (/api/listings)
   useEffect(() => {
     fetch('/api/listings')
       .then((res) => {
-        if (!res.ok) throw new Error('API fallback');
+        if (!res.ok) throw new Error('Fallback');
         return res.json();
       })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setD1Connected(true);
           const normalizedD1 = data.map((d) => ({
+            ...INITIAL_LISTINGS[0],
             ...d,
-            locationName: d.locationName || d.location_name || 'Sanctuary',
+            id: d.id || `oasis-${Math.random()}`,
+            name: d.name || 'Oasis Sanctuary',
+            subtitle: d.subtitle || d.sub_type || 'Private Sanctuary',
+            locationName: d.locationName || d.location_name || 'Coastal Sanctuary',
             numericPrice: Number(d.numericPrice || d.numeric_price || 32000),
-            subType: d.subType || d.sub_type || 'Villa',
+            subType: d.subType || d.sub_type || 'Private Sanctuary',
             groupSize: d.groupSize || d.group_size || 'Up to 8 Guests',
-            lat: Number(d.lat || 19.24),
-            lng: Number(d.lng || 72.78),
             published: d.published !== 0 && d.published !== false
           }));
-          // Merge D1 records with initial global atlas destinations so the globe always has rich pins
           const existingIds = new Set(normalizedD1.map((item) => item.id));
-          const merged = [
+          setListings([
             ...normalizedD1,
             ...INITIAL_LISTINGS.filter((item) => !existingIds.has(item.id))
-          ];
-          setListings(merged);
+          ]);
         }
       })
-      .catch(() => {
-        setD1Connected(false);
-      });
+      .catch(() => {});
   }, []);
 
-  // Seasonal Month Auto-Player
-  useEffect(() => {
-    if (!isPlayingMonths) return;
-    const interval = setInterval(() => {
-      setSelectedMonth((prev) => (prev + 1) % 12);
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [isPlayingMonths]);
-
-  // Filtered Listings
   const filteredListings = useMemo(() => {
     return listings.filter((item) => {
       if (!item.published) return false;
       if (categoryFilter !== 'ALL' && item.category.toUpperCase() !== categoryFilter) {
         return false;
       }
-      if (selectedCountry !== 'All Countries' && item.country !== selectedCountry) {
-        return false;
-      }
-      if (item.numericPrice && item.numericPrice > maxPriceFilter) {
-        return false;
-      }
-      if (searchQuery.trim() !== '') {
-        const q = searchQuery.toLowerCase();
-        const match =
-          item.name?.toLowerCase().includes(q) ||
-          item.locationName?.toLowerCase().includes(q) ||
-          item.country?.toLowerCase().includes(q) ||
-          item.region?.toLowerCase().includes(q);
-        if (!match) return false;
-      }
       return true;
     });
-  }, [listings, categoryFilter, selectedCountry, maxPriceFilter, searchQuery]);
+  }, [listings, categoryFilter]);
 
-  // Unique Locations for 3D Globe Beacons
-  const uniqueLocations = useMemo(() => {
-    const map = new Map();
-    filteredListings.forEach((item) => {
-      const key = item.locationName;
-      if (!map.has(key)) {
-        map.set(key, {
-          locationName: item.locationName,
-          country: item.country,
-          region: item.region,
-          lat: item.lat,
-          lng: item.lng,
-          items: [item]
-        });
-      } else {
-        map.get(key).items.push(item);
-      }
-    });
-    return Array.from(map.values());
-  }, [filteredListings]);
-
-  // Initialize and Animate Three.js 3D Globe
-  useEffect(() => {
-    if (currentPage !== 'home') return;
-    const container = mountRef.current;
-    if (!container) return;
-
-    const width = container.clientWidth || 900;
-    const height = container.clientHeight || 540;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
-    camera.position.z = 5.4;
-    cameraRef.current = camera;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
-
-    const globeGroup = new THREE.Group();
-    globeGroup.rotation.x = targetRotationRef.current.x;
-    globeGroup.rotation.y = targetRotationRef.current.y;
-    scene.add(globeGroup);
-    globeGroupRef.current = globeGroup;
-
-    // Ambient & Directional Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-    scene.add(ambientLight);
-    const dirLight = new THREE.DirectionalLight(0xa5f3fc, 1.3);
-    dirLight.position.set(5, 4, 6);
-    scene.add(dirLight);
-
-    // Core Textured Sphere
-    const radius = 1.72;
-    const sphereGeo = new THREE.SphereGeometry(radius, 64, 64);
-    const globeTex = createProceduralGlobeTexture(surfaceStyle, visualMode, isDay);
-    const sphereMat = new THREE.MeshPhongMaterial({
-      map: globeTex,
-      shininess: 18,
-      specular: new THREE.Color(0x334155)
-    });
-    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
-    globeGroup.add(sphereMesh);
-
-    // Atmospheric Rim Halo
-    const haloGeo = new THREE.SphereGeometry(radius * 1.03, 64, 64);
-    const haloMat = new THREE.MeshBasicMaterial({
-      color: aqiOn ? 0x4ade80 : sunlightOn ? 0xfacc15 : weatherOn ? 0x38bdf8 : 0x64748b,
-      transparent: true,
-      opacity: aqiOn || sunlightOn || weatherOn ? 0.18 : 0.08,
-      side: THREE.BackSide
-    });
-    const haloMesh = new THREE.Mesh(haloGeo, haloMat);
-    globeGroup.add(haloMesh);
-
-    // Resize Handler
-    const handleResize = () => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-    window.addEventListener('resize', handleResize);
-
-    // Animation & 2D Beacon Projection Loop
-    let frameId;
-    const animate = () => {
-      frameId = requestAnimationFrame(animate);
-
-      // Smooth damping rotation
-      if (!isDraggingRef.current) {
-        targetRotationRef.current.y += 0.0006;
-      }
-      globeGroup.rotation.x += (targetRotationRef.current.x - globeGroup.rotation.x) * 0.08;
-      globeGroup.rotation.y += (targetRotationRef.current.y - globeGroup.rotation.y) * 0.08;
-
-      // Smooth camera zoom
-      const desiredZ = 5.6 - Math.min(Math.max(zoomLevel, 0.5), 4) * 0.62;
-      camera.position.z += (desiredZ - camera.position.z) * 0.1;
-
-      renderer.render(scene, camera);
-
-      // Project 3D coordinates of unique locations to 2D overlay labels
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      const nextBeacons = [];
-
-      uniqueLocations.forEach((loc) => {
-        const localVec = latLngToVector3(loc.lat, loc.lng, radius * 1.01);
-        const worldVec = localVec.clone().applyEuler(globeGroup.rotation);
-
-        // Check if on front hemisphere facing camera
-        if (worldVec.z > 0.15) {
-          const projected = worldVec.clone().project(camera);
-          const x = (projected.x * 0.5 + 0.5) * w;
-          const y = (-(projected.y * 0.5) + 0.5) * h;
-          nextBeacons.push({
-            ...loc,
-            x,
-            y
-          });
-        }
-      });
-      setProjectedBeacons(nextBeacons);
-    };
-
-    animate();
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', handleResize);
-      renderer.dispose();
-    };
-  }, [currentPage, surfaceStyle, visualMode, isDay, aqiOn, sunlightOn, weatherOn, zoomLevel, uniqueLocations]);
-
-  // Pointer Drag Handlers for 3D Globe
-  const handlePointerDown = (e) => {
-    isDraggingRef.current = true;
-    prevPointerRef.current = { x: e.clientX, y: e.clientY };
+  const openUnitPage = (unit) => {
+    setActiveUnit(unit);
+    setActiveTierIndex(1);
+    setActiveGalleryIdx(0);
+    setCurrentPage('unit-detail');
+    setNavDropdownOpen(false);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const handlePointerMove = (e) => {
-    if (!isDraggingRef.current) return;
-    const dx = e.clientX - prevPointerRef.current.x;
-    const dy = e.clientY - prevPointerRef.current.y;
-    prevPointerRef.current = { x: e.clientX, y: e.clientY };
-    targetRotationRef.current.y += dx * 0.006;
-    targetRotationRef.current.x = Math.max(
-      -1.1,
-      Math.min(1.1, targetRotationRef.current.x + dy * 0.006)
+
+  const openBookingWithUnit = (unitName, tierName = 'Boost Pavilion') => {
+    setBookingForm((prev) => ({
+      ...prev,
+      selectedUnitName: unitName || prev.selectedUnitName,
+      unitTier: tierName
+    }));
+    setBookingDrawerOpen(true);
+  };
+
+  const handleBookingSubmit = (e) => {
+    e.preventDefault();
+    const message = encodeURIComponent(
+      `Hello Opulent Oasis! I would like to book:\n• Sanctuary: ${bookingForm.selectedUnitName}\n• Tier: ${bookingForm.unitTier}\n• Guest: ${bookingForm.firstName} ${bookingForm.lastName} (${bookingForm.guestType})\n• Preference: ${bookingForm.tourType}\n• Dates/Notes: ${bookingForm.dates} ${bookingForm.notes}`
     );
-  };
-  const handlePointerUp = () => {
-    isDraggingRef.current = false;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
   };
 
-  // Country Focus Rotation
-  const handleCountrySelect = (countryName) => {
-    setSelectedCountry(countryName);
-    if (countryName === 'India') {
-      targetRotationRef.current = { x: 0.34, y: -2.15 };
-    } else if (countryName === 'Switzerland' || countryName === 'Norway') {
-      targetRotationRef.current = { x: 0.75, y: -1.4 };
-    } else if (countryName === 'Bhutan') {
-      targetRotationRef.current = { x: 0.42, y: -2.42 };
-    }
-  };
-
-  // Host Portal Authentication & D1 Submission
   const handleHostLogin = (e) => {
     e.preventDefault();
     if (hostPasscode === 'oasis2026') {
       setIsHostAuthenticated(true);
       setHostPasscodeError('');
     } else {
-      setHostPasscodeError('Invalid passcode. Use demo passcode: oasis2026');
+      setHostPasscodeError('Incorrect passcode. Use demo code: oasis2026');
     }
   };
 
@@ -728,11 +738,11 @@ export default function App() {
     setSaveSuccessMessage('');
 
     const payload = {
+      ...INITIAL_LISTINGS[0],
       ...newListing,
       id: `oasis-${Date.now()}`,
       numericPrice: Number(newListing.numericPrice) || 45000,
-      lat: Number(newListing.lat) || 19.07,
-      lng: Number(newListing.lng) || 72.87,
+      statusBadge: 'Newly Added',
       published: true
     };
 
@@ -743,19 +753,19 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        setD1Connected(true);
-        setSaveSuccessMessage('Saved directly to Cloudflare D1 Edge Database!');
+        setSaveSuccessMessage('Sanctuary saved to Cloudflare D1 Edge Database!');
       } else {
-        setSaveSuccessMessage('Added to live session (Bind D1 in Cloudflare dashboard for persistence).');
+        setSaveSuccessMessage('Sanctuary added to live collection!');
       }
     } catch {
-      setSaveSuccessMessage('Added to live session.');
+      setSaveSuccessMessage('Sanctuary added to live collection!');
     } finally {
       setListings((prev) => [payload, ...prev]);
       setSavingToD1(false);
       setNewListing({
         ...newListing,
         name: '',
+        subtitle: '',
         locationName: '',
         region: '',
         description: ''
@@ -763,459 +773,1274 @@ export default function App() {
     }
   };
 
-  // WhatsApp Concierge Dispatch
-  const openWhatsAppInquiry = (subjectText) => {
-    const text = encodeURIComponent(
-      `Hello Opulent Oasis Concierge, I would like to inquire about: ${subjectText}`
-    );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
-  };
+  const activeAmenityObj =
+    AMENITY_SHOWCASE.find((a) => a.id === activeAmenityId) || AMENITY_SHOWCASE[0];
 
   return (
     <div
-      className={`font-sans-ui min-h-screen w-full transition-colors duration-300 ${
-        isDay ? 'bg-[#f4f3ef] text-[#141414]' : 'bg-[#0e0f12] text-[#f4f3ef]'
+      className={`font-body min-h-screen w-full transition-colors duration-500 ${
+        isDay ? 'bg-[#f4f0e8] text-[#121214]' : 'bg-[#09090b] text-[#f5f2eb]'
       }`}
     >
-      <style>{AWWWARDS_STYLE_CSS}</style>
+      <style>{UNITS_OASIS_CSS}</style>
 
-      {/* =====================================================================
-          TOP NAVIGATION & FILTER BAR (EXACT AWWWARDS GLASS LAYOUT)
-      ===================================================================== */}
-      <header className="relative z-40 px-3 sm:px-6 pt-3">
+      <header className="sticky top-3 sm:top-5 z-40 px-3 sm:px-6">
         <div
-          className={`mx-auto max-w-[1380px] rounded-[18px] px-4 sm:px-6 py-3.5 space-y-3 ${
-            isDay ? 'apple-glass-light' : 'apple-glass-dark'
+          className={`mx-auto max-w-[1400px] rounded-full px-4 sm:px-7 h-16 sm:h-20 flex items-center justify-between border backdrop-blur-2xl transition-all shadow-2xl ${
+            isDay
+              ? 'bg-[#ffffff]/90 border-black/10 text-[#121214]'
+              : 'bg-[#141418]/90 border-white/10 text-[#f5f2eb]'
           }`}
         >
-          {/* Row 1: Inquire | Brand Title | Host + Theme */}
-          <div className="flex items-center justify-between border-b border-current/10 pb-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setInquiryModalOpen(true)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-mono-tech text-xs uppercase tracking-wider transition ${
-                  isDay ? 'apple-pill-light hover:bg-black/10' : 'apple-pill-dark hover:bg-white/15'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                INQUIRE
-              </button>
-              <button
-                onClick={() => setCurrentPage('contact')}
-                className="hidden sm:inline font-mono-tech text-xs opacity-70 hover:opacity-100 transition"
-              >
-                Concierge
-              </button>
-            </div>
-
-            <div
-              onClick={() => setCurrentPage('home')}
-              className="flex flex-col items-center justify-center text-center cursor-pointer group"
-            >
-              <Sparkles className="w-4 h-4 opacity-70 mb-0.5 group-hover:rotate-45 transition" />
-              <span className="font-sans-ui text-base sm:text-xl font-normal tracking-[0.28em] uppercase">
-                OPULENT OASIS
-              </span>
-              <span className="font-mono-tech text-[9px] tracking-[0.3em] uppercase opacity-55">
-                STAYS • TOUR • TREK
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setHostModalOpen(true)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-mono-tech text-xs transition ${
-                  isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                }`}
-              >
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Host</span>
-              </button>
-              <div
-                className={`flex items-center p-1 rounded-full ${
-                  isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                }`}
-              >
-                <button
-                  onClick={() => setIsDay(true)}
-                  className={`p-1.5 rounded-full transition ${
-                    isDay ? 'bg-[#111111] text-white' : 'opacity-45'
-                  }`}
-                >
-                  <Sun className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setIsDay(false)}
-                  className={`p-1.5 rounded-full transition ${
-                    !isDay ? 'bg-white text-[#111111]' : 'opacity-45'
-                  }`}
-                >
-                  <Moon className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Category Pill Switcher + Search + Date + Budget */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-0.5">
-            <div
-              className={`flex items-center p-1 rounded-full ${
-                isDay ? 'apple-pill-light' : 'apple-pill-dark'
-              }`}
-            >
-              {['ALL', 'STAY', 'TOUR', 'TREK'].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    setCategoryFilter(cat);
-                    setCurrentPage('home');
-                  }}
-                  className={`px-3.5 py-1 rounded-full font-mono-tech text-[11px] tracking-wider transition ${
-                    categoryFilter === cat
-                      ? isDay
-                        ? 'bg-[#141414] text-white font-medium'
-                        : 'bg-white text-[#141414] font-medium'
-                      : 'opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            {/* Search Input Pill */}
-            <div
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full w-60 sm:w-64 ${
-                isDay ? 'apple-pill-light' : 'apple-pill-dark'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5 opacity-60" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search locations, villas, treks..."
-                className="bg-transparent text-xs w-full focus:outline-none placeholder:opacity-50"
-              />
-            </div>
-
-            {/* Date / Window Pill */}
+          <div className="flex items-center gap-6">
             <button
-              onClick={() => setInquiryModalOpen(true)}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full font-mono-tech text-[11px] ${
-                isDay ? 'apple-pill-light' : 'apple-pill-dark'
-              }`}
+              onClick={() => {
+                setCurrentPage('home');
+                setNavDropdownOpen(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2.5 text-left group"
             >
-              <Calendar className="w-3.5 h-3.5 opacity-70" />
-              <span>{MONTHS[selectedMonth]} 14–18 • 2G</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#d6c5b3] text-[#09090b] flex items-center justify-center font-display font-extrabold text-sm tracking-tighter group-hover:rotate-12 transition-transform">
+                OO
+              </div>
+              <div>
+                <span className="font-display font-extrabold text-lg sm:text-xl tracking-tight block leading-none">
+                  OPULENT OASIS
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#d6c5b3] block mt-0.5">
+                  Stays • Tours • Treks
+                </span>
+              </div>
             </button>
 
-            {/* Price Filter Pill */}
+            <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
+              <div className="relative">
+                <button
+                  onClick={() => setNavDropdownOpen(!navDropdownOpen)}
+                  className={`px-4 py-2 rounded-full inline-flex items-center gap-1.5 transition ${
+                    navDropdownOpen
+                      ? 'bg-[#d6c5b3] text-[#09090b] font-semibold'
+                      : 'hover:bg-current/5'
+                  }`}
+                >
+                  <span>Sanctuaries</span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      navDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {navDropdownOpen && (
+                  <div
+                    className={`absolute left-0 mt-3 w-[540px] rounded-[28px] p-6 border shadow-2xl grid grid-cols-2 gap-4 z-50 ${
+                      isDay
+                        ? 'bg-[#f9f6f0] border-black/10 text-[#121214]'
+                        : 'bg-[#16161b] border-white/15 text-[#f5f2eb]'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-[#d6c5b3] font-semibold">
+                        Coastal & Alpine Stays
+                      </div>
+                      {listings
+                        .filter((l) => l.category === 'Stay')
+                        .map((unit) => (
+                          <button
+                            key={unit.id}
+                            onClick={() => openUnitPage(unit)}
+                            className="w-full text-left p-3 rounded-2xl hover:bg-current/5 transition flex items-center justify-between group"
+                          >
+                            <div>
+                              <div className="font-display font-bold text-sm">{unit.name}</div>
+                              <div className="text-xs opacity-60">{unit.locationName}</div>
+                            </div>
+                            <ArrowUpRight className="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                          </button>
+                        ))}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-[#9eb393] font-semibold">
+                        Expeditions & Tours
+                      </div>
+                      {listings
+                        .filter((l) => l.category !== 'Stay')
+                        .map((unit) => (
+                          <button
+                            key={unit.id}
+                            onClick={() => openUnitPage(unit)}
+                            className="w-full text-left p-3 rounded-2xl hover:bg-current/5 transition flex items-center justify-between group"
+                          >
+                            <div>
+                              <div className="font-display font-bold text-sm">{unit.name}</div>
+                              <div className="text-xs opacity-60">
+                                {unit.category} • {unit.country}
+                              </div>
+                            </div>
+                            <ArrowUpRight className="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  setCurrentPage('way-of-living');
+                  setNavDropdownOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`px-4 py-2 rounded-full transition ${
+                  currentPage === 'way-of-living'
+                    ? 'bg-current/10 font-semibold'
+                    : 'hover:bg-current/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                Our Way of Living
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentPage('community');
+                  setNavDropdownOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`px-4 py-2 rounded-full transition ${
+                  currentPage === 'community'
+                    ? 'bg-current/10 font-semibold'
+                    : 'hover:bg-current/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                Community & Stories
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentPage('faqs');
+                  setNavDropdownOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`px-4 py-2 rounded-full transition ${
+                  currentPage === 'faqs'
+                    ? 'bg-current/10 font-semibold'
+                    : 'hover:bg-current/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                FAQs
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentPage('contact');
+                  setNavDropdownOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`px-4 py-2 rounded-full transition ${
+                  currentPage === 'contact'
+                    ? 'bg-current/10 font-semibold'
+                    : 'hover:bg-current/5 opacity-80 hover:opacity-100'
+                }`}
+              >
+                Contact
+              </button>
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onClick={() =>
-                setMaxPriceFilter((prev) => (prev >= 250000 ? 60000 : prev + 65000))
-              }
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full font-mono-tech text-[11px] ${
-                isDay ? 'apple-pill-light' : 'apple-pill-dark'
+              onClick={() => setIsDay(!isDay)}
+              className={`p-2.5 rounded-full border transition ${
+                isDay ? 'border-black/10 hover:bg-black/5' : 'border-white/10 hover:bg-white/5'
+              }`}
+              title="Toggle Atmosphere"
+            >
+              {isDay ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-[#d6c5b3]" />}
+            </button>
+
+            <button
+              onClick={() => setHostModalOpen(true)}
+              className={`hidden md:inline-flex px-4 py-2.5 rounded-full text-xs font-semibold border transition ${
+                isDay
+                  ? 'border-black/15 hover:bg-black/5'
+                  : 'border-white/15 hover:bg-white/5'
               }`}
             >
-              <Sliders className="w-3.5 h-3.5 opacity-70" />
-              <span>₹0k – ₹{Math.round(maxPriceFilter / 1000)}k</span>
+              + Host Unit
+            </button>
+
+            <button
+              onClick={() => openBookingWithUnit(activeUnit?.name)}
+              className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-display font-bold bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition inline-flex items-center gap-2 shadow-lg"
+            >
+              <span>Book your Oasis</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2.5 rounded-full border border-current/15"
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
+
+        {mobileMenuOpen && (
+          <div
+            className={`lg:hidden mt-2 rounded-[28px] p-6 border shadow-2xl space-y-4 ${
+              isDay
+                ? 'bg-[#ffffff] border-black/10 text-[#121214]'
+                : 'bg-[#141418] border-white/15 text-[#f5f2eb]'
+            }`}
+          >
+            <div className="text-xs uppercase tracking-[0.2em] text-[#d6c5b3] font-semibold">
+              Explore Sanctuaries
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {listings.map((unit) => (
+                <button
+                  key={unit.id}
+                  onClick={() => openUnitPage(unit)}
+                  className="p-3 rounded-2xl bg-current/5 text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-display font-bold text-sm">{unit.name}</div>
+                    <div className="text-xs opacity-65">{unit.price}</div>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-current/10 pt-4 flex flex-wrap gap-2">
+              {[
+                { id: 'home', label: 'Home' },
+                { id: 'way-of-living', label: 'Our Way of Living' },
+                { id: 'community', label: 'Community' },
+                { id: 'faqs', label: 'FAQs' },
+                { id: 'contact', label: 'Contact' }
+              ].map((nav) => (
+                <button
+                  key={nav.id}
+                  onClick={() => {
+                    setCurrentPage(nav.id);
+                    setMobileMenuOpen(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 rounded-full text-xs font-semibold border border-current/15"
+                >
+                  {nav.label}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setHostModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-full text-xs font-semibold bg-[#d6c5b3]/20 text-[#d6c5b3]"
+              >
+                + Host Studio
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* =====================================================================
-          HOME VIEW: 3D BLACK MAP GLOBE + TELEMETRY CONTROLS + SANCTUARY GRID
-      ===================================================================== */}
       {currentPage === 'home' && (
-        <main className="mx-auto max-w-[1380px] px-3 sm:px-6 pt-3 pb-16 space-y-4">
-          {/* 3D GLOBE VIEWPORT */}
-          <div
-            className={`relative w-full h-[64vh] min-h-[500px] rounded-[22px] overflow-hidden border select-none ${
-              isDay
-                ? 'strata-dot-grid-light border-black/10'
-                : 'strata-dot-grid-dark border-white/10'
-            }`}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-          >
-            {/* Three.js Canvas Mount */}
-            <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-
-            {/* Projected 2D Interactive Location Beacons on 3D Globe */}
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              {projectedBeacons.map((beacon) => (
-                <button
-                  key={beacon.locationName}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedLocationHub(beacon);
-                  }}
-                  style={{
-                    transform: `translate3d(${beacon.x}px, ${beacon.y}px, 0)`
-                  }}
-                  className="pointer-events-auto -translate-x-1/2 -translate-y-1/2 absolute flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#18191e]/90 hover:bg-black text-white border border-white/20 shadow-lg backdrop-blur-md transition-transform hover:scale-110"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#4ade80]" />
-                  <span className="font-sans-ui text-[11px] font-medium whitespace-nowrap">
-                    {beacon.locationName}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* LEFT SURFACE SWITCHER (SAT | TOPO | NIGHT | MAP) */}
-            <div
-              className={`absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 p-1.5 rounded-[16px] ${
-                isDay ? 'apple-glass-light' : 'apple-glass-dark'
-              }`}
-            >
-              {[
-                { id: 'sat', label: 'SAT' },
-                { id: 'topo', label: 'TOPO' },
-                { id: 'night', label: 'NIGHT' },
-                { id: 'map', label: 'MAP' }
-              ].map((st) => (
-                <button
-                  key={st.id}
-                  onClick={() => setSurfaceStyle(st.id)}
-                  className={`px-2.5 py-2 rounded-[10px] font-mono-tech text-[10px] tracking-wider transition ${
-                    surfaceStyle === st.id
-                      ? isDay
-                        ? 'bg-[#141414] text-white font-semibold'
-                        : 'bg-white text-[#141414] font-semibold'
-                      : 'opacity-65 hover:opacity-100'
-                  }`}
-                >
-                  {st.label}
-                </button>
-              ))}
-            </div>
-
-            {/* RIGHT ZOOM SWITCHER (4x | 3x | 2x | 1x | 0.5x) */}
-            <div
-              className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 p-1.5 rounded-[16px] ${
-                isDay ? 'apple-glass-light' : 'apple-glass-dark'
-              }`}
-            >
-              {[4, 3, 2, 1, 0.5].map((z) => (
-                <button
-                  key={z}
-                  onClick={() => setZoomLevel(z)}
-                  className={`px-2.5 py-1.5 rounded-[10px] font-mono-tech text-[10px] transition ${
-                    zoomLevel === z
-                      ? isDay
-                        ? 'bg-[#141414] text-white font-semibold'
-                        : 'bg-white text-[#141414] font-semibold'
-                      : 'opacity-65 hover:opacity-100'
-                  }`}
-                >
-                  {z}x
-                </button>
-              ))}
-            </div>
-
-            {/* TOP-RIGHT D1 EDGE TELEMETRY BADGE */}
-            <div className="absolute top-4 right-4 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-mono-tech text-white/80">
-              <Database className="w-3 h-3 text-emerald-400" />
-              <span>{d1Connected ? 'CLOUDFLARE D1 LIVE' : 'EDGE ATLAS READY'}</span>
-            </div>
-          </div>
-
-          {/* SENSORY MODE & TELEMETRY BAR (Radial | Color | Circles | Dots | AQI | Sunlight | Weather) */}
-          <div className="flex justify-center">
-            <div
-              className={`inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full ${
-                isDay ? 'apple-glass-light' : 'apple-glass-dark'
-              }`}
-            >
-              <span className="font-mono-tech text-[10px] uppercase tracking-widest opacity-50 px-1">
-                MODE
-              </span>
-              {['Radial', 'Color', 'Circles', 'Dots'].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setVisualMode(m)}
-                  className={`px-3 py-1 rounded-full font-mono-tech text-[11px] transition ${
-                    visualMode === m
-                      ? isDay
-                        ? 'bg-[#141414] text-white'
-                        : 'bg-white text-[#141414]'
-                      : 'opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-
-              <span className="h-4 w-[1px] bg-current/15 mx-1" />
-
-              <button
-                onClick={() => setAqiOn(!aqiOn)}
-                className={`px-2.5 py-1 rounded-full font-mono-tech text-[11px] transition ${
-                  aqiOn ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'opacity-65'
-                }`}
-              >
-                AQI {aqiOn ? 'ON' : 'OFF'}
-              </button>
-              <button
-                onClick={() => setSunlightOn(!sunlightOn)}
-                className={`px-2.5 py-1 rounded-full font-mono-tech text-[11px] transition ${
-                  sunlightOn ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'opacity-65'
-                }`}
-              >
-                Sunlight {sunlightOn ? 'ON' : 'OFF'}
-              </button>
-              <button
-                onClick={() => setWeatherOn(!weatherOn)}
-                className={`px-2.5 py-1 rounded-full font-mono-tech text-[11px] transition ${
-                  weatherOn ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' : 'opacity-65'
-                }`}
-              >
-                Weather {weatherOn ? 'ON' : 'OFF'}
-              </button>
-
-              <button
-                onClick={() => setHostModalOpen(true)}
-                className="px-3.5 py-1 rounded-full font-mono-tech text-[11px] bg-emerald-900/50 hover:bg-emerald-800/70 text-emerald-300 border border-emerald-500/30 transition"
-              >
-                + Add Operating Location
-              </button>
-            </div>
-          </div>
-
-          {/* SEASONAL TIMELINE & COUNTRY SELECTOR BAR */}
-          <div
-            className={`rounded-[18px] px-4 py-3 flex flex-wrap items-center justify-between gap-3 ${
-              isDay ? 'apple-glass-light' : 'apple-glass-dark'
-            }`}
-          >
-            {/* Country Selector */}
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-emerald-400" />
-              <select
-                value={selectedCountry}
-                onChange={(e) => handleCountrySelect(e.target.value)}
-                className={`px-3.5 py-1.5 rounded-full font-mono-tech text-xs focus:outline-none ${
-                  isDay ? 'apple-pill-light text-black' : 'apple-pill-dark text-white bg-[#18191e]'
-                }`}
-              >
-                {['All Countries', 'India', 'Bhutan', 'Switzerland', 'Norway'].map((c) => (
-                  <option key={c} value={c} className="bg-[#18191e] text-white">
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Months Scrubber */}
-            <div
-              className={`flex items-center gap-1 p-1 rounded-full overflow-x-auto ${
-                isDay ? 'apple-pill-light' : 'apple-pill-dark'
-              }`}
-            >
-              {MONTHS.map((m, idx) => (
-                <button
-                  key={m}
-                  onClick={() => setSelectedMonth(idx)}
-                  className={`px-2.5 py-1 rounded-full font-mono-tech text-[11px] transition ${
-                    selectedMonth === idx
-                      ? isDay
-                        ? 'bg-[#141414] text-white font-semibold'
-                        : 'bg-white text-[#141414] font-semibold'
-                      : 'opacity-65 hover:opacity-100'
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-
-            {/* Play Months Button */}
-            <button
-              onClick={() => setIsPlayingMonths(!isPlayingMonths)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-mono-tech text-xs transition ${
-                isDay ? 'apple-pill-light' : 'apple-pill-dark'
-              }`}
-            >
-              {isPlayingMonths ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              <span>{isPlayingMonths ? 'Pause' : 'Play Months'}</span>
-            </button>
-          </div>
-
-          {/* CURATED SANCTUARIES & EXPEDITIONS CARDS */}
+        <main className="mx-auto max-w-[1400px] px-3 sm:px-6 pt-4 pb-16 space-y-6 sm:space-y-8">
           <section
-            className={`rounded-[22px] p-5 sm:p-7 space-y-5 ${
-              isDay ? 'apple-glass-light' : 'apple-glass-dark'
+            className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 lg:p-16 border relative overflow-hidden ${
+              isDay
+                ? 'bg-[#e9e2d6] border-black/10 text-[#121214]'
+                : 'bg-[#121216] border-white/10 text-[#f5f2eb]'
             }`}
           >
-            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-current/10 pb-4">
-              <div>
-                <span className="font-mono-tech text-[10px] uppercase tracking-[0.25em] text-emerald-400">
-                  [ CURATED GLOBAL SANCTUARIES • {filteredListings.length} ACTIVE ]
-                </span>
-                <h2 className="font-editorial text-3xl sm:text-4xl font-normal mt-1">
-                  Architectural Stays, Private Charters & Alpine Treks
-                </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#d6c5b3] text-[#09090b]">
+                    All-Inclusive Sanctuaries
+                  </span>
+                  <span className="px-4 py-1.5 rounded-full text-xs font-semibold border border-current/15">
+                    Stays • Private Tours • Alpine Treks
+                  </span>
+                </div>
+
+                <h1 className="font-display font-extrabold text-4xl sm:text-6xl lg:text-[4.6rem] leading-[0.96] tracking-tight">
+                  Home of the{' '}
+                  <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                    uniquely
+                  </span>{' '}
+                  extraordinary.
+                </h1>
+
+                <p className="text-base sm:text-xl opacity-80 max-w-2xl leading-relaxed font-normal">
+                  All-inclusive architectural villas, private helicopter charters, and guided mountain
+                  expeditions with everything you need to live, explore, and disconnect.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    onClick={() => openBookingWithUnit(listings[0]?.name)}
+                    className="px-7 py-4 rounded-full font-display font-bold text-sm bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition inline-flex items-center gap-2 shadow-xl"
+                  >
+                    <span>Book your Oasis</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('locations-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-7 py-4 rounded-full font-display font-semibold text-sm border border-current/20 hover:bg-current/5 transition"
+                  >
+                    Explore Locations ↓
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-4 max-w-lg">
+                  <div className="p-4 rounded-2xl bg-current/[0.04] border border-current/10">
+                    <div className="font-display font-extrabold text-2xl sm:text-3xl text-[#d6c5b3]">
+                      100%
+                    </div>
+                    <div className="text-xs opacity-65 mt-0.5">All-Inclusive Tariffs</div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-current/[0.04] border border-current/10">
+                    <div className="font-display font-extrabold text-2xl sm:text-3xl text-[#9eb393]">
+                      24/7
+                    </div>
+                    <div className="text-xs opacity-65 mt-0.5">Private Concierge</div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-current/[0.04] border border-current/10">
+                    <div className="font-display font-extrabold text-2xl sm:text-3xl text-[#d49a7b]">
+                      4 Countries
+                    </div>
+                    <div className="text-xs opacity-65 mt-0.5">Curated Units</div>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => setInquiryModalOpen(true)}
-                className="font-mono-tech text-xs underline opacity-75 hover:opacity-100"
-              >
-                Request Bespoke Itinerary →
-              </button>
+
+              <div className="lg:col-span-5">
+                <div
+                  onClick={() => openUnitPage(listings[1] || listings[0])}
+                  className="group cursor-pointer rounded-[28px] overflow-hidden border border-current/15 bg-black/30 relative aspect-[4/4.3] flex flex-col justify-between p-6 text-white shadow-2xl"
+                >
+                  <img
+                    src={(listings[1] || listings[0]).image}
+                    alt="Featured Oasis"
+                    className="absolute inset-0 w-full h-full object-cover img-zoom"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/20" />
+
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#9eb393] text-[#09090b]">
+                      Move-in & Charter Ready
+                    </span>
+                    <span className="w-11 h-11 rounded-full bg-white/90 text-black flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <ArrowUpRight className="w-5 h-5" />
+                    </span>
+                  </div>
+
+                  <div className="relative z-10 space-y-2">
+                    <div className="text-xs uppercase tracking-[0.2em] text-[#d6c5b3]">
+                      {(listings[1] || listings[0]).locationName} • 20' Speedboat from Mumbai
+                    </div>
+                    <h2 className="font-display font-extrabold text-3xl sm:text-4xl">
+                      {(listings[1] || listings[0]).name}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-white/80 line-clamp-2">
+                      {(listings[1] || listings[0]).description}
+                    </p>
+                    <div className="pt-2 flex items-center justify-between border-t border-white/15 text-xs">
+                      <span>4 Unit Tiers Available</span>
+                      <span className="font-bold text-[#d6c5b3]">
+                        From {(listings[1] || listings[0]).price}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div
+            className={`rounded-full py-4 border overflow-hidden ${
+              isDay
+                ? 'bg-[#121214] text-[#f5f2eb] border-black/10'
+                : 'bg-[#d6c5b3] text-[#09090b] border-white/10'
+            }`}
+          >
+            <div className="animate-marquee flex items-center gap-10 text-xs sm:text-sm font-display font-bold uppercase tracking-[0.18em]">
+              {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((text, idx) => (
+                <div key={idx} className="flex items-center gap-10 shrink-0">
+                  <span>{text}</span>
+                  <span className="w-2 h-2 rounded-full bg-current opacity-50" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <section
+            id="locations-section"
+            className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 lg:p-14 border space-y-10 ${
+              isDay
+                ? 'bg-[#ffffff] border-black/10'
+                : 'bg-[#121216] border-white/10'
+            }`}
+          >
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-[#d6c5b3]/20 text-[#d6c5b3]">
+                  Locations & Sanctuaries
+                </span>
+                <h2 className="font-display font-extrabold text-3xl sm:text-5xl lg:text-6xl leading-[0.98]">
+                  Where your escape{' '}
+                  <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                    just works.
+                  </span>
+                </h2>
+                <p className="text-sm sm:text-base opacity-75 leading-relaxed">
+                  Wake up, step out, you’re there. Private beaches, mango orchards, alpine pistes, and
+                  Himalayan monasteries — all without wasted transit time. Every Oasis location is
+                  chosen to match your rhythm.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'ALL', label: 'All Units (' + listings.length + ')' },
+                  { id: 'STAY', label: 'Private Stays' },
+                  { id: 'TOUR', label: 'Bespoke Tours' },
+                  { id: 'TREK', label: 'Guided Treks' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCategoryFilter(tab.id)}
+                    className={`px-5 py-2.5 rounded-full text-xs font-display font-bold uppercase tracking-wider transition ${
+                      categoryFilter === tab.id
+                        ? 'bg-[#d6c5b3] text-[#09090b]'
+                        : 'border border-current/15 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredListings.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setActiveExperience(item)}
-                  className={`group cursor-pointer rounded-[20px] overflow-hidden border transition-all duration-300 hover:-translate-y-1 ${
+              {filteredListings.map((unit) => (
+                <article
+                  key={unit.id}
+                  onClick={() => openUnitPage(unit)}
+                  className={`group cursor-pointer rounded-[28px] overflow-hidden border unit-card-hover flex flex-col justify-between ${
                     isDay
-                      ? 'apple-glass-light border-black/10'
-                      : 'apple-glass-dark border-white/10'
+                      ? 'bg-[#f7f4ee] border-black/10'
+                      : `${unit.cardBgDark || 'bg-[#17171c]'} border-white/10 hover:border-[#d6c5b3]/50`
                   }`}
                 >
-                  <div className="relative h-64 overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-mono-tech uppercase bg-black/65 text-white backdrop-blur-md border border-white/15">
-                        {item.category} • {item.subType}
-                      </span>
-                    </div>
-                    <div className="absolute top-3 right-3">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-mono-tech bg-emerald-500/20 text-emerald-300 backdrop-blur-md border border-emerald-400/30">
-                        {item.altitude || '15m ASL'}
-                      </span>
-                    </div>
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <div className="text-[11px] font-mono-tech opacity-80 flex items-center justify-between">
-                        <span>
-                          {item.locationName}, {item.country}
+                  <div>
+                    <div className="relative h-64 overflow-hidden">
+                      <img
+                        src={unit.image}
+                        alt={unit.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover img-zoom"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20" />
+
+                      <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+                        <span
+                          className="px-3 py-1 rounded-full text-[11px] font-display font-bold text-[#09090b]"
+                          style={{ backgroundColor: unit.accentColor || '#d6c5b3' }}
+                        >
+                          {unit.statusBadge || unit.category}
                         </span>
-                        <span className="text-emerald-300 font-medium">{item.price}</span>
+                        <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-black/65 text-white backdrop-blur-md">
+                          {unit.country}
+                        </span>
                       </div>
-                      <h3 className="font-editorial text-2xl font-normal mt-0.5 leading-snug">
-                        {item.name}
-                      </h3>
+
+                      <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-widest text-[#d6c5b3]">
+                            {unit.locationName}
+                          </div>
+                          <h3 className="font-display font-extrabold text-2xl leading-tight">
+                            {unit.name}
+                          </h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shrink-0 group-hover:rotate-45 transition-transform">
+                          <ArrowUpRight className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <p className="text-xs sm:text-sm opacity-75 line-clamp-2 leading-relaxed">
+                        {unit.description}
+                      </p>
+
+                      {unit.proximities && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {unit.proximities.slice(0, 2).map((prox, i) => (
+                            <span
+                              key={i}
+                              className="px-2.5 py-1 rounded-full text-[11px] bg-current/[0.06] border border-current/10"
+                            >
+                              <strong className="text-[#d6c5b3]">{prox.time}</strong> {prox.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="p-4 flex items-center justify-between text-xs font-mono-tech opacity-75">
-                    <span>{item.duration || 'Flexible Dates'}</span>
-                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition">
-                      Explore Dossier <ArrowUpRight className="w-3.5 h-3.5" />
+
+                  <div className="px-6 pb-6 pt-3 border-t border-current/10 flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider opacity-50">
+                        All-Inclusive From
+                      </div>
+                      <div className="font-display font-extrabold text-lg text-[#d6c5b3]">
+                        {unit.price}
+                      </div>
+                    </div>
+                    <span className="px-4 py-2 rounded-full text-xs font-display font-bold bg-current/10 group-hover:bg-[#d6c5b3] group-hover:text-[#09090b] transition">
+                      Explore Unit →
                     </span>
                   </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 lg:p-14 border space-y-10 ${
+              isDay
+                ? 'bg-[#e8e1d5] border-black/10'
+                : 'bg-[#141418] border-white/10'
+            }`}
+          >
+            <div className="max-w-3xl space-y-3">
+              <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-[#9eb393]/20 text-[#9eb393]">
+                All-Inclusive Philosophy
+              </span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-5xl lg:text-6xl leading-[0.98]">
+                One Oasis.{' '}
+                <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                  An entire universe.
+                </span>
+              </h2>
+              <p className="text-sm sm:text-base opacity-75 leading-relaxed">
+                Your tariff covers everything. Each Opulent Oasis is its own self-contained universe,
+                combining private architectural spaces, culinary brigades, and expedition logistics
+                with zero hidden fees or surprises.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[
+                {
+                  badge: 'Open Access 24/7',
+                  title: 'Sanctuary Living Spaces',
+                  color: '#d6c5b3',
+                  items: [
+                    'Heated Ozone Infinity Pools',
+                    'Cedar Sauna & Hot-Stone Baths',
+                    'Private Cinema & Vinyl Lounges',
+                    'Heirloom Orchard & Beach Decks'
+                  ]
+                },
+                {
+                  badge: 'Day and Night',
+                  title: 'Security & Discretion',
+                  color: '#9eb393',
+                  items: [
+                    '24/7 Perimeter Security & Patrol',
+                    'Gated Private Estate Access',
+                    'Discreet VIP & Celebrity Protocol',
+                    'Wilderness Medic & Satellite Link'
+                  ]
+                },
+                {
+                  badge: "We've Got You Covered",
+                  title: '24/7 Bespoke Support',
+                  color: '#d49a7b',
+                  items: [
+                    'Dedicated Live-In Butler & Chef',
+                    'Speedboat & Helicopter Charters',
+                    'Instant WhatsApp Concierge Desk',
+                    'Flexible Weather-Window Shifts'
+                  ]
+                },
+                {
+                  badge: 'Everyday Ease',
+                  title: 'Smart Sanctuary Tech',
+                  color: '#c4b5fd',
+                  items: [
+                    'Digital Mobile Key & Itinerary',
+                    'Starlink High-Speed Mesh WiFi',
+                    '100% Solar & Generator Backup',
+                    'EV & Yacht Mooring Stations'
+                  ]
+                }
+              ].map((box, i) => (
+                <div
+                  key={i}
+                  className={`rounded-[28px] p-6 sm:p-7 border flex flex-col justify-between space-y-6 ${
+                    isDay
+                      ? 'bg-[#ffffff] border-black/10'
+                      : 'bg-[#0d0d10] border-white/10'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <span
+                      className="inline-block px-3 py-1 rounded-full text-[11px] font-display font-bold text-[#09090b]"
+                      style={{ backgroundColor: box.color }}
+                    >
+                      {box.badge}
+                    </span>
+                    <h3 className="font-display font-extrabold text-2xl leading-tight">
+                      {box.title}
+                    </h3>
+                    <ul className="space-y-2.5 pt-2 text-xs sm:text-sm opacity-80">
+                      {box.items.map((point, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5">
+                          <Check className="w-4 h-4 text-[#d6c5b3] shrink-0 mt-0.5" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="text-[11px] uppercase tracking-widest opacity-40">
+                    0{i + 1} // Included in Tariff
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 lg:p-14 border ${
+              isDay
+                ? 'bg-[#ffffff] border-black/10'
+                : 'bg-[#121216] border-white/10'
+            }`}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+              <div className="lg:col-span-6 space-y-6">
+                <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-[#d49a7b]/20 text-[#d49a7b]">
+                  Our Sanctuaries • Press to Switch
+                </span>
+                <h2 className="font-display font-extrabold text-3xl sm:text-5xl leading-[0.98]">
+                  Luxury travel,{' '}
+                  <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                    redefined.
+                  </span>
+                </h2>
+                <p className="text-sm sm:text-base opacity-75 leading-relaxed">
+                  Click any capability pill below to inspect how every Opulent Oasis unit is
+                  engineered for effortless comfort, culinary excellence, and adventure.
+                </p>
+
+                <div className="flex flex-wrap gap-2.5 pt-2">
+                  {AMENITY_SHOWCASE.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveAmenityId(item.id)}
+                      className={`px-4 py-2.5 rounded-full text-xs sm:text-sm font-display font-bold transition ${
+                        activeAmenityId === item.id
+                          ? 'bg-[#d6c5b3] text-[#09090b] shadow-md scale-105'
+                          : 'border border-current/15 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-6 rounded-3xl bg-current/[0.04] border border-current/10 space-y-2">
+                  <div className="text-xs uppercase tracking-widest text-[#d6c5b3] font-bold">
+                    {activeAmenityObj.label}
+                  </div>
+                  <h3 className="font-display font-extrabold text-xl sm:text-2xl">
+                    {activeAmenityObj.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm opacity-75 leading-relaxed">
+                    {activeAmenityObj.desc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="lg:col-span-6">
+                <div className="relative rounded-[28px] overflow-hidden aspect-[16/11] border border-current/15 shadow-2xl">
+                  <img
+                    src={activeAmenityObj.img}
+                    alt={activeAmenityObj.title}
+                    className="w-full h-full object-cover transition-all duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between text-white">
+                    <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md">
+                      {activeAmenityObj.label}
+                    </span>
+                    <button
+                      onClick={() => openBookingWithUnit(listings[0]?.name)}
+                      className="px-4 py-2 rounded-full text-xs font-display font-bold bg-[#d6c5b3] text-[#09090b]"
+                    >
+                      Book Experience →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              {
+                num: '01',
+                title: 'For People',
+                subtitle: 'Human-First Hospitality',
+                desc: 'Everything starts with how it feels to wake up here. From private orchard breakfasts to high-altitude campfires, your rhythm always comes first.',
+                bg: isDay ? 'bg-[#e6dfd3]' : 'bg-[#17161b]',
+                accent: '#d6c5b3'
+              },
+              {
+                num: '02',
+                title: 'By Design',
+                subtitle: 'Architectural Precision',
+                desc: 'Nothing is accidental. Every courtyard, cantilevered pool, and geodesic star-bed is sculpted to frame nature without sacrificing comfort.',
+                bg: isDay ? 'bg-[#dde5d9]' : 'bg-[#131916]',
+                accent: '#9eb393'
+              },
+              {
+                num: '03',
+                title: 'With Care',
+                subtitle: 'Local Ecology & Craft',
+                desc: 'At the heart of everything we do. We care for our guests, our local mountain guides and chefs, and the pristine ecosystems we inhabit.',
+                bg: isDay ? 'bg-[#eadccf]' : 'bg-[#1b1614]',
+                accent: '#d49a7b'
+              }
+            ].map((pillar) => (
+              <div
+                key={pillar.num}
+                className={`rounded-[32px] p-8 sm:p-10 border border-current/10 flex flex-col justify-between space-y-10 ${pillar.bg}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className="px-3.5 py-1 rounded-full text-xs font-display font-bold text-[#09090b]"
+                    style={{ backgroundColor: pillar.accent }}
+                  >
+                    {pillar.subtitle}
+                  </span>
+                  <span className="font-serif-accent italic text-3xl opacity-50">{pillar.num}</span>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="font-display font-extrabold text-3xl sm:text-4xl">
+                    {pillar.title}
+                  </h3>
+                  <p className="text-sm opacity-80 leading-relaxed">{pillar.desc}</p>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 lg:p-14 border space-y-8 ${
+              isDay ? 'bg-[#ffffff] border-black/10' : 'bg-[#121216] border-white/10'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <span className="text-xs uppercase tracking-[0.2em] text-[#d6c5b3] font-bold">
+                  Practicalities & Answers
+                </span>
+                <h2 className="font-display font-extrabold text-3xl sm:text-5xl mt-1">
+                  Frequently Asked Questions
+                </h2>
+              </div>
+              <button
+                onClick={() => {
+                  setCurrentPage('faqs');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-5 py-2.5 rounded-full text-xs font-display font-bold border border-current/15 hover:bg-current/5 self-start sm:self-auto"
+              >
+                View All FAQs →
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {FAQ_DATA.slice(0, 4).map((faq, idx) => {
+                const isOpen = openFaqIndex === idx;
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-current/10 overflow-hidden transition"
+                  >
+                    <button
+                      onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
+                      className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-widest text-[#d6c5b3] block">
+                          {faq.category}
+                        </span>
+                        <h3 className="font-display font-bold text-base sm:text-lg">{faq.q}</h3>
+                      </div>
+                      <div className="w-8 h-8 rounded-full border border-current/15 flex items-center justify-center shrink-0">
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform ${
+                            isOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </div>
+                    </button>
+                    {isOpen && (
+                      <div className="px-5 sm:px-6 pb-6 text-xs sm:text-sm opacity-75 leading-relaxed border-t border-current/5 pt-4">
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </main>
+      )}
+
+      {currentPage === 'unit-detail' && activeUnit && (
+        <main className="mx-auto max-w-[1400px] px-3 sm:px-6 pt-4 pb-16 space-y-6 sm:space-y-8">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setCurrentPage('home')}
+              className="px-4 py-2 rounded-full text-xs font-display font-bold border border-current/15 hover:bg-current/5 inline-flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to All Sanctuaries
+            </button>
+            <div className="text-xs opacity-60 hidden sm:block">
+              {activeUnit.country} • {activeUnit.region}
+            </div>
+          </div>
+
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 border space-y-8 ${
+              isDay ? 'bg-[#ffffff] border-black/10' : 'bg-[#121216] border-white/10'
+            }`}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-6 space-y-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="px-3.5 py-1 rounded-full text-xs font-display font-bold text-[#09090b]"
+                    style={{ backgroundColor: activeUnit.accentColor || '#d6c5b3' }}
+                  >
+                    {activeUnit.statusBadge || activeUnit.category}
+                  </span>
+                  <span className="px-3.5 py-1 rounded-full text-xs border border-current/15">
+                    {activeUnit.locationName}, {activeUnit.country}
+                  </span>
+                </div>
+
+                <h1 className="font-display font-extrabold text-4xl sm:text-6xl leading-[0.96]">
+                  {activeUnit.name}
+                </h1>
+                <div className="text-lg sm:text-xl font-serif-accent italic text-[#d6c5b3]">
+                  {activeUnit.subtitle}
+                </div>
+                <p className="text-sm sm:text-base opacity-80 leading-relaxed">
+                  {activeUnit.description}
+                </p>
+
+                <div className="p-4 rounded-2xl bg-current/[0.04] border border-current/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#d6c5b3] shrink-0" />
+                    <span>{activeUnit.address || activeUnit.region}</span>
+                  </div>
+                  <span className="font-display font-bold text-[#d6c5b3]">
+                    {activeUnit.duration} • {activeUnit.groupSize}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    onClick={() =>
+                      openBookingWithUnit(
+                        activeUnit.name,
+                        activeUnit.tiers?.[activeTierIndex]?.name || 'Boost Tier'
+                      )
+                    }
+                    className="px-7 py-4 rounded-full font-display font-bold text-xs sm:text-sm bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition inline-flex items-center gap-2"
+                  >
+                    <span>Book this Oasis</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      window.open(`https://wa.me/${WHATSAPP_NUMBER}`, '_blank')
+                    }
+                    className="px-6 py-4 rounded-full font-display font-semibold text-xs sm:text-sm border border-current/20 hover:bg-current/5 transition"
+                  >
+                    Call / WhatsApp Concierge
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-6 space-y-3">
+                <div className="relative rounded-[28px] overflow-hidden aspect-[16/11] border border-current/15">
+                  <img
+                    src={
+                      (activeUnit.gallery && activeUnit.gallery[activeGalleryIdx]) ||
+                      activeUnit.image
+                    }
+                    alt={activeUnit.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-4 right-4 px-3.5 py-1.5 rounded-full text-xs font-bold bg-black/70 text-white backdrop-blur-md inline-flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5 text-[#d6c5b3]" /> Sanctuary Gallery View
+                  </div>
+                </div>
+                {activeUnit.gallery && activeUnit.gallery.length > 1 && (
+                  <div className="flex gap-2">
+                    {activeUnit.gallery.map((gUrl, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveGalleryIdx(idx)}
+                        className={`relative h-16 w-24 rounded-xl overflow-hidden border-2 transition ${
+                          activeGalleryIdx === idx
+                            ? 'border-[#d6c5b3] scale-105'
+                            : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={gUrl} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {activeUnit.proximities && (
+            <section
+              className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 border space-y-8 ${
+                isDay ? 'bg-[#e9e2d6] border-black/10' : 'bg-[#15151a] border-white/10'
+              }`}
+            >
+              <div className="max-w-2xl space-y-2">
+                <span className="text-xs uppercase tracking-[0.2em] text-[#d6c5b3] font-bold">
+                  Seamless Connectivity
+                </span>
+                <h2 className="font-display font-extrabold text-3xl sm:text-5xl">
+                  All you need,{' '}
+                  <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                    just moments away.
+                  </span>
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                {activeUnit.proximities.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-3xl p-5 border flex flex-col justify-between space-y-4 ${
+                      isDay ? 'bg-white border-black/10' : 'bg-[#0d0d10] border-white/10'
+                    }`}
+                  >
+                    <div className="font-display font-extrabold text-3xl sm:text-4xl text-[#d6c5b3]">
+                      {item.time}
+                    </div>
+                    <div className="text-xs opacity-75 leading-snug">{item.label}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeUnit.tiers && activeUnit.tiers.length > 0 && (
+            <section
+              className={`rounded-[32px] sm:rounded-[44px] p-6 sm:p-12 border space-y-8 ${
+                isDay ? 'bg-[#ffffff] border-black/10' : 'bg-[#121216] border-white/10'
+              }`}
+            >
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div>
+                  <span className="text-xs uppercase tracking-[0.2em] text-[#9eb393] font-bold">
+                    Check Out Our Unit Tiers
+                  </span>
+                  <h2 className="font-display font-extrabold text-3xl sm:text-5xl mt-1">
+                    Choose Your Oasis Configuration
+                  </h2>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {activeUnit.tiers.map((tier, idx) => (
+                    <button
+                      key={tier.id}
+                      onClick={() => setActiveTierIndex(idx)}
+                      className={`px-5 py-3 rounded-full text-xs sm:text-sm font-display font-bold transition ${
+                        activeTierIndex === idx
+                          ? 'bg-[#d6c5b3] text-[#09090b] shadow-lg'
+                          : 'border border-current/15 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      {tier.name} • {tier.price}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(() => {
+                const currentTier =
+                  activeUnit.tiers[activeTierIndex] || activeUnit.tiers[0];
+                return (
+                  <div
+                    className={`rounded-[28px] p-6 sm:p-10 border grid grid-cols-1 lg:grid-cols-12 gap-8 items-center ${
+                      isDay
+                        ? 'bg-[#f6f2ea] border-black/10'
+                        : 'bg-[#18181f] border-white/10'
+                    }`}
+                  >
+                    <div className="lg:col-span-7 space-y-5">
+                      <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-[#d6c5b3] text-[#09090b]">
+                        <span>{currentTier.size}</span>
+                        <span>•</span>
+                        <span>{currentTier.bed}</span>
+                      </div>
+
+                      <h3 className="font-display font-extrabold text-3xl sm:text-4xl">
+                        {currentTier.name} —{' '}
+                        <span className="text-[#d6c5b3]">{currentTier.price}</span>
+                      </h3>
+
+                      <p className="text-sm sm:text-base opacity-80 leading-relaxed">
+                        {currentTier.tagline} Your tariff covers everything: private chef &
+                        butler service, electricity & climate control, high-speed Starlink WiFi,
+                        and unlimited access to all Sanctuary Living Spaces.
+                      </p>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+                        {currentTier.perks.map((perk, i) => (
+                          <div
+                            key={i}
+                            className="p-3 rounded-2xl bg-current/[0.05] border border-current/10 text-xs font-semibold flex items-center gap-2"
+                          >
+                            <Check className="w-4 h-4 text-[#9eb393] shrink-0" />
+                            <span>{perk}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-5 p-6 rounded-3xl bg-current/[0.04] border border-current/10 space-y-5">
+                      <div className="text-xs uppercase tracking-widest text-[#d6c5b3] font-bold">
+                        Each Sanctuary Tier Features:
+                      </div>
+                      <p className="text-xs opacity-75 leading-relaxed">
+                        Anatomical luxury mattresses, organic 600-thread-count linens, private
+                        barista station, Marshall sound system, climate control, rain showers,
+                        botanical bath amenities, private outdoor seating, and 24/7 concierge
+                        intercom.
+                      </p>
+                      <button
+                        onClick={() =>
+                          openBookingWithUnit(activeUnit.name, currentTier.name)
+                        }
+                        className="w-full py-4 rounded-full font-display font-bold text-xs sm:text-sm bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition"
+                      >
+                        Book {currentTier.name} ({currentTier.price}) →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </section>
+          )}
+        </main>
+      )}
+
+      {currentPage === 'way-of-living' && (
+        <main className="mx-auto max-w-[1400px] px-3 sm:px-6 pt-4 pb-16 space-y-6 sm:space-y-8">
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-8 sm:p-14 border space-y-6 ${
+              isDay ? 'bg-[#e9e2d6] border-black/10' : 'bg-[#121216] border-white/10'
+            }`}
+          >
+            <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-[#d6c5b3] text-[#09090b]">
+              Our Way of Living
+            </span>
+            <h1 className="font-display font-extrabold text-4xl sm:text-6xl lg:text-7xl leading-[0.95] max-w-4xl">
+              Why Opulent Oasis{' '}
+              <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                hits different.
+              </span>
+            </h1>
+            <p className="text-base sm:text-xl opacity-80 max-w-2xl leading-relaxed">
+              We stripped away complicated hotel check-ins, hidden resort surcharges, and rigid
+              itineraries—replacing them with modular, all-inclusive private sanctuaries.
+            </p>
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                num: '01',
+                title: 'Practical ease and luxury, every single day',
+                points: [
+                  'All-inclusive tariff covering private chef, butler, utilities & transfers.',
+                  'Smooth private speedboat or heli check-in with our team by your side.',
+                  'Live video walkthroughs before you reserve.',
+                  'Fast on-ground concierge support whenever you need it.'
+                ]
+              },
+              {
+                num: '02',
+                title: 'A new take on experiential travel',
+                points: [
+                  'Privacy-first architectural villas & geodesic summit camps.',
+                  'Seamless transition from coastal estates to Himalayan treks.',
+                  'Starlink high-speed connectivity in every remote sanctuary.',
+                  'Sustainable solar-powered & plastic-free operations.'
+                ]
+              },
+              {
+                num: '03',
+                title: 'Security and comfort from day one',
+                points: [
+                  '24/7 discreet estate security & wilderness medics.',
+                  '7/7 night perimeter monitoring and gated privacy.',
+                  'Guaranteed weather-window rescheduling flexibility.',
+                  '24/7 hot water, climate control & backup power.'
+                ]
+              }
+            ].map((card) => (
+              <div
+                key={card.num}
+                className={`rounded-[32px] p-8 border space-y-6 ${
+                  isDay ? 'bg-white border-black/10' : 'bg-[#141418] border-white/10'
+                }`}
+              >
+                <div className="font-serif-accent italic text-5xl text-[#d6c5b3]">
+                  {card.num}
+                </div>
+                <h3 className="font-display font-extrabold text-2xl">{card.title}</h3>
+                <ul className="space-y-3 text-xs sm:text-sm opacity-80">
+                  {card.points.map((pt, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-[#9eb393] shrink-0 mt-0.5" />
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        </main>
+      )}
+
+      {currentPage === 'community' && (
+        <main className="mx-auto max-w-[1400px] px-3 sm:px-6 pt-4 pb-16 space-y-6 sm:space-y-8">
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-8 sm:p-14 border space-y-6 ${
+              isDay ? 'bg-[#dde5d9] border-black/10' : 'bg-[#131815] border-white/10'
+            }`}
+          >
+            <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-[#9eb393] text-[#09090b]">
+              How We See Community
+            </span>
+            <h1 className="font-display font-extrabold text-4xl sm:text-6xl lg:text-7xl leading-[0.95] max-w-4xl">
+              More than shared spaces.{' '}
+              <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                A shared way of living.
+              </span>
+            </h1>
+            <p className="text-base sm:text-xl opacity-80 max-w-2xl leading-relaxed">
+              We don’t believe in forced group tours or rigid schedules. Whether gathering around a
+              cliffside bonfire in the Sahyadris or hosting a sunset table in Alibaug, you choose
+              what fits—we make it happen.
+            </p>
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                tag: 'Health & Wellness',
+                title: 'Dawn Yoga, Ice Baths & Sound Healing',
+                desc: 'Guided breathwork on private Gorai decks, Himalayan singing bowl sessions in Paro, and alpine thermal recovery.'
+              },
+              {
+                tag: 'Social Days & Nights',
+                title: 'Orchard Sundowners & Star-Bed Bonfires',
+                desc: 'Acoustic vinyl sessions, coastal seafood barbecues, and intimate astronomer-led stargazing under zero light pollution.'
+              },
+              {
+                tag: 'Culture & Craft',
+                title: 'Monastery Trails & Culinary Masterclasses',
+                desc: 'Forage with local Konkan chefs, learn Bhutanese archery, or walk ancient silk-route trails with local historians.'
+              }
+            ].map((ev, i) => (
+              <div
+                key={i}
+                className={`rounded-[32px] p-8 border space-y-4 ${
+                  isDay ? 'bg-white border-black/10' : 'bg-[#141418] border-white/10'
+                }`}
+              >
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#d6c5b3]/20 text-[#d6c5b3]">
+                  {ev.tag}
+                </span>
+                <h3 className="font-display font-extrabold text-2xl">{ev.title}</h3>
+                <p className="text-sm opacity-75 leading-relaxed">{ev.desc}</p>
+              </div>
+            ))}
+          </section>
+        </main>
+      )}
+
+      {currentPage === 'faqs' && (
+        <main className="mx-auto max-w-[1100px] px-3 sm:px-6 pt-4 pb-16 space-y-6">
+          <section
+            className={`rounded-[32px] p-8 sm:p-12 border space-y-6 ${
+              isDay ? 'bg-white border-black/10' : 'bg-[#121216] border-white/10'
+            }`}
+          >
+            <h1 className="font-display font-extrabold text-4xl sm:text-6xl">
+              Frequently Asked Questions
+            </h1>
+            <div className="flex flex-wrap gap-2">
+              {['All', 'About Opulent Oasis', 'Booking & Charters', 'Safety & Operations', 'Pricing & Flexibility'].map(
+                (cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveFaqCategory(cat)}
+                    className={`px-4 py-2 rounded-full text-xs font-display font-bold transition ${
+                      activeFaqCategory === cat
+                        ? 'bg-[#d6c5b3] text-[#09090b]'
+                        : 'border border-current/15 opacity-70'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                )
+              )}
+            </div>
+
+            <div className="space-y-3 pt-4">
+              {FAQ_DATA.filter(
+                (f) => activeFaqCategory === 'All' || f.category === activeFaqCategory
+              ).map((faq, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 rounded-2xl border border-current/10 space-y-2"
+                >
+                  <div className="text-[10px] uppercase tracking-widest text-[#d6c5b3] font-bold">
+                    {faq.category}
+                  </div>
+                  <h3 className="font-display font-bold text-lg">{faq.q}</h3>
+                  <p className="text-sm opacity-75 leading-relaxed">{faq.a}</p>
                 </div>
               ))}
             </div>
@@ -1223,425 +2048,421 @@ export default function App() {
         </main>
       )}
 
-      {/* =====================================================================
-          MULTI-PAGE ROUTER: CONTACT CONCIERGE, TERMS, PRIVACY
-      ===================================================================== */}
-      {currentPage !== 'home' && (
-        <main className="mx-auto max-w-4xl px-4 sm:px-6 pt-8 pb-20">
-          <div
-            className={`rounded-[24px] p-6 sm:p-10 space-y-6 ${
-              isDay ? 'apple-glass-light' : 'apple-glass-dark'
+      {currentPage === 'contact' && (
+        <main className="mx-auto max-w-[1200px] px-3 sm:px-6 pt-4 pb-16">
+          <section
+            className={`rounded-[32px] sm:rounded-[44px] p-8 sm:p-14 border grid grid-cols-1 lg:grid-cols-12 gap-10 ${
+              isDay ? 'bg-white border-black/10' : 'bg-[#121216] border-white/10'
             }`}
           >
-            <button
-              onClick={() => setCurrentPage('home')}
-              className="flex items-center gap-2 font-mono-tech text-xs opacity-70 hover:opacity-100"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to 3D Globe Atlas
-            </button>
+            <div className="lg:col-span-6 space-y-6">
+              <span className="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-[#d6c5b3] text-[#09090b]">
+                Connect With Us
+              </span>
+              <h1 className="font-display font-extrabold text-4xl sm:text-6xl leading-none">
+                Have questions?{' '}
+                <span className="font-serif-accent italic font-normal text-[#d6c5b3]">
+                  Let’s talk.
+                </span>
+              </h1>
+              <p className="text-sm sm:text-base opacity-75 leading-relaxed">
+                Our sanctuary specialists and expedition leaders are available 24/7 across Mumbai,
+                Alibaug, Paro Valley, and Zermatt.
+              </p>
 
-            {currentPage === 'contact' && (
-              <div className="space-y-6">
-                <h1 className="font-editorial text-4xl sm:text-5xl">Private Concierge Desk</h1>
-                <p className="text-sm opacity-75 leading-relaxed">
-                  Our aviation, yacht charter, and private sanctuary specialists operate 24/7 across
-                  Mumbai, Alibaug, Zermatt, and Paro Valley.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className={`p-5 rounded-2xl ${isDay ? 'apple-pill-light' : 'apple-pill-dark'}`}>
-                    <Phone className="w-5 h-5 text-emerald-400 mb-2" />
-                    <div className="font-mono-tech text-xs opacity-60">DIRECT WHATSAPP DESK</div>
-                    <div className="text-lg font-medium mt-1">+91 98200 00000</div>
+              <div className="space-y-4 pt-2">
+                <div className="p-5 rounded-2xl bg-current/[0.04] border border-current/10">
+                  <div className="text-xs uppercase tracking-widest opacity-50">
+                    Direct WhatsApp & Phone
                   </div>
-                  <div className={`p-5 rounded-2xl ${isDay ? 'apple-pill-light' : 'apple-pill-dark'}`}>
-                    <Mail className="w-5 h-5 text-emerald-400 mb-2" />
-                    <div className="font-mono-tech text-xs opacity-60">CONCIERGE DISPATCH</div>
-                    <div className="text-lg font-medium mt-1">concierge@opulentoasis.co.in</div>
+                  <div className="font-display font-extrabold text-2xl text-[#d6c5b3] mt-1">
+                    +91 98200 00000
+                  </div>
+                </div>
+                <div className="p-5 rounded-2xl bg-current/[0.04] border border-current/10">
+                  <div className="text-xs uppercase tracking-widest opacity-50">
+                    Concierge Desk Email
+                  </div>
+                  <div className="font-display font-extrabold text-2xl mt-1">
+                    concierge@opulentoasis.co.in
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
-            {currentPage === 'terms' && (
-              <div className="space-y-4">
-                <h1 className="font-editorial text-4xl">Terms & Charter Conditions</h1>
-                <p className="text-sm opacity-75 leading-relaxed">
-                  All private villa reservations, high-altitude treks, and bespoke tours booked via
-                  Opulent Oasis (`opulentoasis.co.in`) include dedicated ground concierge support and
-                  verified weather-window flexibility.
-                </p>
-              </div>
-            )}
-
-            {currentPage === 'privacy' && (
-              <div className="space-y-4">
-                <h1 className="font-editorial text-4xl">Privacy & Guest Discretion Policy</h1>
-                <p className="text-sm opacity-75 leading-relaxed">
-                  Guest manifests, private aviation tail numbers, and Cloudflare D1 encrypted booking
-                  records are strictly confidential and never shared with third-party brokers.
-                </p>
-              </div>
-            )}
-          </div>
+            <div className="lg:col-span-6">
+              <form
+                onSubmit={handleBookingSubmit}
+                className="p-6 sm:p-8 rounded-3xl bg-current/[0.03] border border-current/10 space-y-4"
+              >
+                <h3 className="font-display font-bold text-2xl">Send a Direct Inquiry</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    required
+                    type="text"
+                    placeholder="First Name *"
+                    value={bookingForm.firstName}
+                    onChange={(e) =>
+                      setBookingForm({ ...bookingForm, firstName: e.target.value })
+                    }
+                    className="px-4 py-3.5 rounded-2xl bg-transparent border border-current/15 text-sm"
+                  />
+                  <input
+                    required
+                    type="text"
+                    placeholder="Last Name *"
+                    value={bookingForm.lastName}
+                    onChange={(e) =>
+                      setBookingForm({ ...bookingForm, lastName: e.target.value })
+                    }
+                    className="px-4 py-3.5 rounded-2xl bg-transparent border border-current/15 text-sm"
+                  />
+                </div>
+                <input
+                  required
+                  type="tel"
+                  placeholder="WhatsApp / Phone Number *"
+                  value={bookingForm.phone}
+                  onChange={(e) =>
+                    setBookingForm({ ...bookingForm, phone: e.target.value })
+                  }
+                  className="w-full px-4 py-3.5 rounded-2xl bg-transparent border border-current/15 text-sm"
+                />
+                <textarea
+                  rows={3}
+                  placeholder="Tell us which sanctuary or dates you are interested in..."
+                  value={bookingForm.notes}
+                  onChange={(e) =>
+                    setBookingForm({ ...bookingForm, notes: e.target.value })
+                  }
+                  className="w-full px-4 py-3.5 rounded-2xl bg-transparent border border-current/15 text-sm"
+                />
+                <button
+                  type="submit"
+                  className="w-full py-4 rounded-full font-display font-bold text-sm bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition"
+                >
+                  Dispatch to Concierge →
+                </button>
+              </form>
+            </div>
+          </section>
         </main>
       )}
 
-      {/* =====================================================================
-          MODAL 1: LOCATION HUB (OPENS WHEN CLICKING A 3D GLOBE BEACON)
-      ===================================================================== */}
-      {selectedLocationHub && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl">
+      {bookingDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-md">
           <div
-            className={`relative w-full max-w-2xl rounded-[26px] p-6 sm:p-8 space-y-5 max-h-[85vh] overflow-y-auto ${
-              isDay ? 'apple-glass-light text-zinc-900' : 'apple-glass-dark text-zinc-100'
+            className={`relative w-full max-w-xl h-full overflow-y-auto p-6 sm:p-10 space-y-8 border-l ${
+              isDay
+                ? 'bg-[#f7f4ee] text-[#121214] border-black/10'
+                : 'bg-[#121216] text-[#f5f2eb] border-white/15'
             }`}
           >
-            <div className="flex items-start justify-between border-b border-current/10 pb-4">
+            <div className="flex items-center justify-between border-b border-current/10 pb-5">
               <div>
-                <span className="font-mono-tech text-[10px] uppercase tracking-widest text-emerald-400">
-                  [ OPERATING NODE • {selectedLocationHub.country} ]
+                <span className="text-[11px] uppercase tracking-[0.2em] text-[#d6c5b3] font-bold">
+                  Direct Sanctuary Reservation
                 </span>
-                <h3 className="font-editorial text-3xl sm:text-4xl mt-1">
-                  {selectedLocationHub.locationName}
-                </h3>
-                <p className="text-xs opacity-70 font-mono-tech mt-0.5">
-                  {selectedLocationHub.region} • {selectedLocationHub.lat.toFixed(2)}°N,{' '}
-                  {selectedLocationHub.lng.toFixed(2)}°E
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedLocationHub(null)}
-                className="p-2 rounded-full hover:bg-white/10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {selectedLocationHub.items.map((exp) => (
-                <div
-                  key={exp.id}
-                  onClick={() => {
-                    setSelectedLocationHub(null);
-                    setActiveExperience(exp);
-                  }}
-                  className={`cursor-pointer p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition hover:scale-[1.01] ${
-                    isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={exp.image}
-                      alt={exp.name}
-                      className="w-20 h-16 rounded-xl object-cover"
-                    />
-                    <div>
-                      <span className="text-[10px] font-mono-tech uppercase text-emerald-400">
-                        {exp.category} • {exp.subType}
-                      </span>
-                      <h4 className="font-editorial text-xl">{exp.name}</h4>
-                      <p className="text-xs opacity-70">{exp.price}</p>
-                    </div>
-                  </div>
-                  <button className="px-4 py-2 rounded-full font-mono-tech text-xs bg-white text-black shrink-0">
-                    Inspect →
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =====================================================================
-          MODAL 2: EXPERIENCE DOSSIER MODAL
-      ===================================================================== */}
-      {activeExperience && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl">
-          <div
-            className={`relative w-full max-w-2xl rounded-[28px] overflow-hidden ${
-              isDay ? 'apple-glass-light text-zinc-900' : 'apple-glass-dark text-zinc-100'
-            }`}
-          >
-            <div className="relative h-72">
-              <img
-                src={activeExperience.image}
-                alt={activeExperience.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-              <button
-                onClick={() => setActiveExperience(null)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <div className="absolute bottom-5 left-6 right-6 text-white">
-                <span className="px-3 py-1 rounded-full text-[10px] font-mono-tech uppercase bg-emerald-500/30 border border-emerald-400/40">
-                  {activeExperience.category} • {activeExperience.locationName}
-                </span>
-                <h2 className="font-editorial text-3xl sm:text-4xl mt-2">
-                  {activeExperience.name}
+                <h2 className="font-display font-extrabold text-3xl mt-0.5">
+                  Book your Oasis
                 </h2>
               </div>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <p className="text-sm leading-relaxed opacity-85">{activeExperience.description}</p>
-              <div className="grid grid-cols-3 gap-3 text-center font-mono-tech text-xs">
-                <div className={`p-3 rounded-xl ${isDay ? 'apple-pill-light' : 'apple-pill-dark'}`}>
-                  <div className="opacity-50 text-[10px]">TARIFF</div>
-                  <div className="mt-1 font-medium">{activeExperience.price}</div>
-                </div>
-                <div className={`p-3 rounded-xl ${isDay ? 'apple-pill-light' : 'apple-pill-dark'}`}>
-                  <div className="opacity-50 text-[10px]">DURATION</div>
-                  <div className="mt-1 font-medium">{activeExperience.duration || '2–5 Nights'}</div>
-                </div>
-                <div className={`p-3 rounded-xl ${isDay ? 'apple-pill-light' : 'apple-pill-dark'}`}>
-                  <div className="opacity-50 text-[10px]">CAPACITY</div>
-                  <div className="mt-1 font-medium">{activeExperience.groupSize || 'Private'}</div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-                <button
-                  onClick={() => openWhatsAppInquiry(activeExperience.name)}
-                  className="w-full sm:w-auto px-6 py-3 rounded-full font-mono-tech text-xs uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-black font-semibold transition"
-                >
-                  Reserve via WhatsApp Concierge →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =====================================================================
-          MODAL 3: INQUIRE CONCIERGE MODAL
-      ===================================================================== */}
-      {inquiryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xl">
-          <div
-            className={`relative w-full max-w-md rounded-[28px] p-6 space-y-4 ${
-              isDay ? 'apple-glass-light text-zinc-900' : 'apple-glass-dark text-zinc-100'
-            }`}
-          >
-            <div className="flex justify-between items-center border-b border-current/10 pb-3">
-              <h3 className="font-editorial text-2xl">Bespoke Concierge Inquiry</h3>
-              <button onClick={() => setInquiryModalOpen(false)}>
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <input
-                type="text"
-                placeholder="Your Full Name"
-                value={inquiryForm.name}
-                onChange={(e) => setInquiryForm({ ...inquiryForm, name: e.target.value })}
-                className={`w-full px-3.5 py-2.5 rounded-xl bg-transparent ${
-                  isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                }`}
-              />
-              <input
-                type="text"
-                placeholder="Preferred Destination (e.g., Gorai, Alibaug, Zermatt)"
-                value={inquiryForm.destination}
-                onChange={(e) => setInquiryForm({ ...inquiryForm, destination: e.target.value })}
-                className={`w-full px-3.5 py-2.5 rounded-xl bg-transparent ${
-                  isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                }`}
-              />
-              <textarea
-                rows={3}
-                placeholder="Dates, guest count, or special helicopter/yacht requests..."
-                value={inquiryForm.notes}
-                onChange={(e) => setInquiryForm({ ...inquiryForm, notes: e.target.value })}
-                className={`w-full px-3.5 py-2.5 rounded-xl bg-transparent ${
-                  isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                }`}
-              />
               <button
-                onClick={() =>
-                  openWhatsAppInquiry(
-                    `${inquiryForm.destination} (${inquiryForm.name || 'Guest'}): ${inquiryForm.notes}`
-                  )
-                }
-                className="w-full py-3 rounded-full font-mono-tech text-xs uppercase bg-emerald-500 text-black font-semibold"
+                onClick={() => setBookingDrawerOpen(false)}
+                className="p-2.5 rounded-full border border-current/15 hover:bg-current/10"
               >
-                Dispatch to Concierge WhatsApp
+                <X className="w-5 h-5" />
               </button>
             </div>
+
+            <form onSubmit={handleBookingSubmit} className="space-y-6 text-sm">
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold uppercase tracking-wider text-[#d6c5b3]">
+                  1. Which Sanctuary or Expedition are you interested in? *
+                </label>
+                <select
+                  value={bookingForm.selectedUnitName}
+                  onChange={(e) =>
+                    setBookingForm({ ...bookingForm, selectedUnitName: e.target.value })
+                  }
+                  className={`w-full px-4 py-3.5 rounded-2xl border border-current/15 font-medium ${
+                    isDay ? 'bg-white text-black' : 'bg-[#1a1a20] text-white'
+                  }`}
+                >
+                  {listings.map((u) => (
+                    <option key={u.id} value={u.name}>
+                      {u.name} ({u.locationName} — {u.price})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold uppercase tracking-wider text-[#d6c5b3]">
+                  2. Preferred Oasis Tier *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Kick Suite', 'Boost Pavilion', 'Flex Wing', 'Vibe Full Buyout'].map(
+                    (tier) => (
+                      <button
+                        type="button"
+                        key={tier}
+                        onClick={() => setBookingForm({ ...bookingForm, unitTier: tier })}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-display font-bold border transition ${
+                          bookingForm.unitTier === tier
+                            ? 'bg-[#d6c5b3] text-[#09090b] border-[#d6c5b3]'
+                            : 'border-current/15 opacity-70'
+                        }`}
+                      >
+                        {tier}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold uppercase tracking-wider text-[#d6c5b3]">
+                  3. Guest Profile *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Solo / Couple ✨', 'Family & Friends 👨‍👩‍👧‍👦', 'Private Charter 🚁'].map(
+                    (role) => (
+                      <button
+                        type="button"
+                        key={role}
+                        onClick={() =>
+                          setBookingForm({ ...bookingForm, guestType: role })
+                        }
+                        className={`py-2.5 px-2 rounded-xl text-xs font-display font-bold border transition ${
+                          bookingForm.guestType === role
+                            ? 'bg-[#9eb393] text-[#09090b] border-[#9eb393]'
+                            : 'border-current/15 opacity-70'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-display font-bold uppercase tracking-wider text-[#d6c5b3]">
+                  4. Guest Contact Details *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    required
+                    type="text"
+                    placeholder="First Name *"
+                    value={bookingForm.firstName}
+                    onChange={(e) =>
+                      setBookingForm({ ...bookingForm, firstName: e.target.value })
+                    }
+                    className="px-4 py-3 rounded-2xl bg-transparent border border-current/15"
+                  />
+                  <input
+                    required
+                    type="text"
+                    placeholder="Surname *"
+                    value={bookingForm.lastName}
+                    onChange={(e) =>
+                      setBookingForm({ ...bookingForm, lastName: e.target.value })
+                    }
+                    className="px-4 py-3 rounded-2xl bg-transparent border border-current/15"
+                  />
+                </div>
+                <input
+                  required
+                  type="tel"
+                  placeholder="Phone / WhatsApp Number *"
+                  value={bookingForm.phone}
+                  onChange={(e) =>
+                    setBookingForm({ ...bookingForm, phone: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-2xl bg-transparent border border-current/15"
+                />
+                <input
+                  type="text"
+                  placeholder="Preferred Dates & Number of Guests"
+                  value={bookingForm.dates}
+                  onChange={(e) =>
+                    setBookingForm({ ...bookingForm, dates: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-2xl bg-transparent border border-current/15"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-display font-bold uppercase tracking-wider text-[#d6c5b3]">
+                  5. Would you like a preview walkthrough?
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Direct Reservation 🏠', 'Remote Video Walkthrough 🌐'].map((mode) => (
+                    <button
+                      type="button"
+                      key={mode}
+                      onClick={() => setBookingForm({ ...bookingForm, tourType: mode })}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-display font-bold border transition ${
+                        bookingForm.tourType === mode
+                          ? 'bg-[#d6c5b3] text-[#09090b] border-[#d6c5b3]'
+                          : 'border-current/15 opacity-70'
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 rounded-full font-display font-extrabold text-sm bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition shadow-xl"
+              >
+                Confirm & Connect via WhatsApp →
+              </button>
+            </form>
           </div>
         </div>
       )}
 
-      {/* =====================================================================
-          MODAL 4: HOST PORTAL CMS (CONNECTED TO CLOUDFLARE D1 EDGE SQLITE)
-      ===================================================================== */}
       {hostModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
           <div
-            className={`relative w-full max-w-lg rounded-[28px] p-6 max-h-[88vh] overflow-y-auto ${
-              isDay ? 'apple-glass-light text-zinc-900' : 'apple-glass-dark text-zinc-100'
+            className={`relative w-full max-w-lg rounded-[32px] p-8 max-h-[88vh] overflow-y-auto border ${
+              isDay
+                ? 'bg-[#f7f4ee] text-[#121214] border-black/10'
+                : 'bg-[#141418] text-[#f5f2eb] border-white/15'
             }`}
           >
-            <div className="flex justify-between items-center pb-3 border-b border-current/10">
-              <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-editorial text-2xl">Host Studio • Cloudflare D1 CMS</h3>
-              </div>
+            <div className="flex justify-between items-center pb-4 border-b border-current/10">
+              <h3 className="font-display font-extrabold text-2xl">
+                Curator Host Studio (Cloudflare D1)
+              </h3>
               <button onClick={() => setHostModalOpen(false)}>
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {!isHostAuthenticated ? (
-              <form onSubmit={handleHostLogin} className="py-6 space-y-4 text-xs">
-                <p>
-                  Edge Database Status:{' '}
-                  <span className="text-emerald-400 font-mono-tech">
-                    {d1Connected ? 'Connected to opulent-oasis-db (D1)' : 'Ready for D1 Binding'}
-                  </span>
-                </p>
-                <p className="opacity-70">
-                  Enter Host Passcode (Demo:{' '}
-                  <code className="bg-white/10 px-1.5 py-0.5 rounded">oasis2026</code>)
+              <form onSubmit={handleHostLogin} className="py-6 space-y-4 text-sm">
+                <p className="opacity-75">
+                  Enter curator passcode to publish new Units to your Cloudflare D1 database
+                  (Passcode: <code className="px-2 py-0.5 rounded bg-current/10">oasis2026</code>)
                 </p>
                 <input
                   type="password"
                   value={hostPasscode}
                   onChange={(e) => setHostPasscode(e.target.value)}
                   placeholder="Enter passcode..."
-                  className={`w-full px-3.5 py-2.5 rounded-xl bg-transparent ${
-                    isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                  }`}
+                  className="w-full px-4 py-3 rounded-2xl bg-transparent border border-current/15"
                 />
-                {hostPasscodeError && <p className="text-rose-400">{hostPasscodeError}</p>}
+                {hostPasscodeError && (
+                  <p className="text-rose-400 text-xs">{hostPasscodeError}</p>
+                )}
                 <button
                   type="submit"
-                  className={`w-full py-3 rounded-full font-mono-tech text-xs uppercase ${
-                    isDay ? 'bg-black text-white' : 'bg-white text-black font-medium'
-                  }`}
+                  className="w-full py-3.5 rounded-full font-display font-bold text-xs uppercase tracking-wider bg-[#d6c5b3] text-[#09090b]"
                 >
-                  Unlock Cloudflare D1 Studio
+                  Unlock Host Studio
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleCreateListing} className="py-4 space-y-3 text-xs">
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono-tech text-[11px]">
-                  Publishing a sanctuary here sends a POST request to <code>/api/listings</code> and
-                  inserts a row into your Cloudflare D1 database, plus plots its 3D beacon on the
-                  globe immediately.
-                </div>
-
+              <form onSubmit={handleCreateListing} className="py-5 space-y-3.5 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     required
                     type="text"
-                    placeholder="Sanctuary / Villa Name"
+                    placeholder="Unit Name (e.g. Oasis Lonavala)"
                     value={newListing.name}
-                    onChange={(e) => setNewListing({ ...newListing, name: e.target.value })}
-                    className={`px-3.5 py-2 rounded-xl bg-transparent ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, name: e.target.value })
+                    }
+                    className="px-3.5 py-2.5 rounded-xl bg-transparent border border-current/15"
                   />
                   <input
                     required
                     type="text"
-                    placeholder="Beacon Label (e.g. Lonavala Crest)"
+                    placeholder="Location Label (e.g. Lonavala Crest)"
                     value={newListing.locationName}
-                    onChange={(e) => setNewListing({ ...newListing, locationName: e.target.value })}
-                    className={`px-3.5 py-2 rounded-xl bg-transparent ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, locationName: e.target.value })
+                    }
+                    className="px-3.5 py-2.5 rounded-xl bg-transparent border border-current/15"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <select
                     value={newListing.category}
-                    onChange={(e) => setNewListing({ ...newListing, category: e.target.value })}
-                    className={`px-3 py-2 rounded-xl bg-[#18191e] text-white ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, category: e.target.value })
+                    }
+                    className="px-3 py-2.5 rounded-xl bg-transparent border border-current/15"
                   >
-                    <option value="Stay">Stay</option>
-                    <option value="Tour">Tour</option>
-                    <option value="Trek">Trek</option>
+                    <option value="Stay" className="bg-zinc-900 text-white">
+                      Stay
+                    </option>
+                    <option value="Tour" className="bg-zinc-900 text-white">
+                      Tour
+                    </option>
+                    <option value="Trek" className="bg-zinc-900 text-white">
+                      Trek
+                    </option>
                   </select>
                   <input
                     type="text"
-                    placeholder="Display Price (₹45,000 / night)"
+                    placeholder="Tariff (₹45,000 / night)"
                     value={newListing.price}
-                    onChange={(e) => setNewListing({ ...newListing, price: e.target.value })}
-                    className={`px-3 py-2 rounded-xl bg-transparent ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, price: e.target.value })
+                    }
+                    className="px-3 py-2.5 rounded-xl bg-transparent border border-current/15"
                   />
                   <input
-                    type="number"
-                    placeholder="Numeric Price (45000)"
-                    value={newListing.numericPrice}
-                    onChange={(e) => setNewListing({ ...newListing, numericPrice: e.target.value })}
-                    className={`px-3 py-2 rounded-xl bg-transparent ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Latitude (e.g. 18.75)"
-                    value={newListing.lat}
-                    onChange={(e) => setNewListing({ ...newListing, lat: e.target.value })}
-                    className={`px-3 py-2 rounded-xl bg-transparent ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Longitude (e.g. 73.40)"
-                    value={newListing.lng}
-                    onChange={(e) => setNewListing({ ...newListing, lng: e.target.value })}
-                    className={`px-3 py-2 rounded-xl bg-transparent ${
-                      isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                    }`}
+                    type="text"
+                    placeholder="Country (e.g. India)"
+                    value={newListing.country}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, country: e.target.value })
+                    }
+                    className="px-3 py-2.5 rounded-xl bg-transparent border border-current/15"
                   />
                 </div>
 
                 <input
                   type="url"
-                  placeholder="Image URL (Unsplash)"
+                  placeholder="Photography URL (Unsplash)"
                   value={newListing.image}
-                  onChange={(e) => setNewListing({ ...newListing, image: e.target.value })}
-                  className={`w-full px-3.5 py-2 rounded-xl bg-transparent ${
-                    isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                  }`}
+                  onChange={(e) =>
+                    setNewListing({ ...newListing, image: e.target.value })
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-transparent border border-current/15"
                 />
 
                 <textarea
-                  rows={2}
-                  placeholder="Architectural & sanctuary description..."
+                  rows={3}
+                  placeholder="Editorial description of the sanctuary..."
                   value={newListing.description}
-                  onChange={(e) => setNewListing({ ...newListing, description: e.target.value })}
-                  className={`w-full px-3.5 py-2 rounded-xl bg-transparent ${
-                    isDay ? 'apple-pill-light' : 'apple-pill-dark'
-                  }`}
+                  onChange={(e) =>
+                    setNewListing({ ...newListing, description: e.target.value })
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-transparent border border-current/15"
                 />
 
                 {saveSuccessMessage && (
-                  <p className="text-emerald-400 font-mono-tech">{saveSuccessMessage}</p>
+                  <p className="text-[#9eb393] font-semibold text-xs">
+                    {saveSuccessMessage}
+                  </p>
                 )}
 
                 <button
                   type="submit"
                   disabled={savingToD1}
-                  className="w-full py-3 rounded-full font-mono-tech text-xs uppercase bg-emerald-500 text-black font-semibold"
+                  className="w-full py-3.5 rounded-full font-display font-bold text-xs uppercase tracking-wider bg-[#d6c5b3] text-[#09090b]"
                 >
-                  {savingToD1 ? 'Writing to Cloudflare D1...' : 'Publish Sanctuary to D1 & 3D Globe'}
+                  {savingToD1 ? 'Publishing to D1...' : 'Publish Sanctuary Unit'}
                 </button>
               </form>
             )}
@@ -1649,23 +2470,58 @@ export default function App() {
         </div>
       )}
 
-      {/* =====================================================================
-          FOOTER
-      ===================================================================== */}
-      <footer
-        className={`mt-12 border-t py-8 px-4 text-center font-mono-tech text-xs opacity-70 ${
-          isDay ? 'border-black/10' : 'border-white/10'
-        }`}
-      >
-        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-6">
-          <button onClick={() => setCurrentPage('home')}>Explore 3D Atlas</button>
-          <button onClick={() => setCurrentPage('contact')}>Contact Concierge</button>
-          <button onClick={() => setCurrentPage('terms')}>Terms & Conditions</button>
-          <button onClick={() => setCurrentPage('privacy')}>Privacy Policy</button>
+      <footer className="mx-auto max-w-[1400px] px-3 sm:px-6 pb-8">
+        <div
+          className={`rounded-[32px] sm:rounded-[44px] p-8 sm:p-14 border space-y-10 ${
+            isDay
+              ? 'bg-[#121214] text-[#f5f2eb] border-black/10'
+              : 'bg-[#141418] text-[#f5f2eb] border-white/10'
+          }`}
+        >
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border-b border-white/10 pb-10">
+            <div className="space-y-2 max-w-xl">
+              <span className="text-xs uppercase tracking-[0.2em] text-[#d6c5b3] font-bold">
+                Ready for Your Next Chapter?
+              </span>
+              <h2 className="font-display font-extrabold text-3xl sm:text-5xl">
+                {listings.length} Sanctuaries. One unmistakable standard.
+              </h2>
+            </div>
+            <button
+              onClick={() => openBookingWithUnit(listings[0]?.name)}
+              className="px-8 py-4 rounded-full font-display font-extrabold text-sm bg-[#d6c5b3] text-[#09090b] hover:bg-[#e5d7c7] transition inline-flex items-center gap-2 shrink-0"
+            >
+              <span>Book your Oasis</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 text-xs opacity-70">
+            <div className="font-display font-bold text-sm text-white">
+              © 2026 OPULENT OASIS (`opulentoasis.co.in`) — Curated Stays, Tours & Expeditions
+            </div>
+            <div className="flex flex-wrap gap-6">
+              <button onClick={() => setCurrentPage('home')} className="hover:text-[#d6c5b3]">
+                Sanctuaries
+              </button>
+              <button
+                onClick={() => setCurrentPage('way-of-living')}
+                className="hover:text-[#d6c5b3]"
+              >
+                Our Way of Living
+              </button>
+              <button onClick={() => setCurrentPage('community')} className="hover:text-[#d6c5b3]">
+                Community
+              </button>
+              <button onClick={() => setCurrentPage('faqs')} className="hover:text-[#d6c5b3]">
+                FAQs
+              </button>
+              <button onClick={() => setCurrentPage('contact')} className="hover:text-[#d6c5b3]">
+                Contact
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="mt-4 text-[10px] opacity-50">
-          © 2026 Opulent Oasis Hospitality Group • Powered by Cloudflare Pages & D1 Edge SQLite.
-        </p>
       </footer>
     </div>
   );
