@@ -94,6 +94,14 @@ const AWWWARDS_STYLE_CSS = `
   }
 `;
 
+function SonDavenPixelCanvasImage({ src, alt, className = '' }) {
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      <img src={src} alt={alt} className="w-full h-full object-cover" />
+    </div>
+  );
+}
+
 const INITIAL_LISTINGS = [
   {
     id: 'gorai-villa-1',
@@ -157,13 +165,38 @@ const INITIAL_LISTINGS = [
   }
 ];
 
+function normalizeCategory(cat = '') {
+  const c = cat.toLowerCase();
+  if (c.includes('stay') || c.includes('villa')) return 'Stay';
+  if (c.includes('trek')) return 'Trek';
+  return 'Tour';
+}
+
+const WORLD_COUNTRIES = [
+  { name: 'All Countries', lat: 19.07, lng: 72.87 },
+  { name: 'India', lat: 20.59, lng: 78.96 },
+  { name: 'Switzerland', lat: 46.81, lng: 8.22 },
+  { name: 'Japan', lat: 36.2, lng: 138.25 }
+];
+
+const MONTHS = [
+  { short: 'Jan' }, { short: 'Feb' }, { short: 'Mar' }, { short: 'Apr' },
+  { short: 'May' }, { short: 'Jun' }, { short: 'Jul' }, { short: 'Aug' },
+  { short: 'Sep' }, { short: 'Oct' }, { short: 'Nov' }, { short: 'Dec' }
+];
+
 export default function App() {
   const [isDay, setIsDay] = useState(false);
   const [currentPage, setCurrentPage] = useState('home');
   const [listings, setListings] = useState(INITIAL_LISTINGS);
+  const [surfaceStyle, setSurfaceStyle] = useState('vector');
+  const [zoomLevel, setZoomLevel] = useState(0.5);
+  const [selectedMonth, setSelectedMonth] = useState(10);
+  const [selectedCountry, setSelectedCountry] = useState('All Countries');
   const [activeExperience, setActiveExperience] = useState(null);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [hostModalOpen, setHostModalOpen] = useState(false);
+  const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
 
   // Fetch from Cloudflare D1 API if available
   useEffect(() => {
@@ -269,7 +302,7 @@ export default function App() {
               <p>Database Status: <span className="text-green-500 font-mono">Connected to Cloudflare D1</span></p>
               <p className="opacity-70">Passcode demo: <code className="bg-white/10 px-1 py-0.5 rounded">oasis2026</code></p>
               <input type="password" placeholder="Passcode..." className={`w-full px-3.5 py-2.5 rounded-xl bg-transparent ${isDay ? 'apple-pill-light' : 'apple-pill-dark'}`} />
-              <button onClick={() => {}} className={`w-full py-3 rounded-full font-mono text-xs uppercase ${isDay ? 'bg-black text-white' : 'bg-white text-black'}`}>
+              <button onClick={() => setIsHostAuthenticated(true)} className={`w-full py-3 rounded-full font-mono text-xs uppercase ${isDay ? 'bg-black text-white' : 'bg-white text-black'}`}>
                 Unlock Database Studio
               </button>
             </div>
