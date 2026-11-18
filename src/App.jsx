@@ -22,7 +22,7 @@ import {
   Globe
 } from 'lucide-react';
 
-const WHATSAPP_NUMBER = '919820000000';
+const WHATSAPP_NUMBER = '918369699497';
 
 const EDITORIAL_STAMP_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Pinyon+Script&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
