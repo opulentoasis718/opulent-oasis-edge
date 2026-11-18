@@ -1753,6 +1753,27 @@ export default function App() {
         {activePage === 'home' ? (
           <>
             {/* ===================================================================
+                2. 4K 3D BLACK GLOBE HERO WITH PERFORATED POSTAGE STAMPS
+            =================================================================== */}
+            <section
+              id="globe-hero-section"
+              className="relative mx-2 sm:mx-8 my-2 rounded-[18px] overflow-hidden border border-white/15 shadow-2xl"
+            >
+              <StampGlobeHero
+                locations={DESTINATION_LOCATIONS}
+                selectedLocation={activeLocation}
+                onSelectLocation={(loc) => {
+                  setActiveLocation(loc);
+                  handleOpenCategoryCatalog(selectedCategory, loc.id);
+                }}
+                activeCategory={selectedCategory}
+                onScrollToExplorer={(loc) =>
+                  handleOpenCategoryCatalog(selectedCategory, loc.id)
+                }
+              />
+            </section>
+
+            {/* ===================================================================
                 3. MIDDLE ARCHITECTURAL DIVIDER & "START YOUR VOYAGE"
             =================================================================== */}
             <div className="relative z-20 px-4 sm:px-12 py-6 bg-[#18181a] border-t border-white/10">
