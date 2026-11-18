@@ -19,10 +19,66 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  Globe
+  Globe,
+  ShieldCheck,
+  Mail,
+  Phone,
+  FileText,
+  HelpCircle,
+  RefreshCw,
+  Send
 } from 'lucide-react';
 
-const WHATSAPP_NUMBER = '919820000000';
+// ============================================================================
+// CUSTOMIZE YOUR BUSINESS & MANDATORY PAGES CONTENT HERE
+// (Or edit live from the website via Curator Studio -> "Edit Business & Pages")
+// ============================================================================
+const DEFAULT_SITE_CONTENT = {
+  businessName: 'Opulent Oasis',
+  tagline: 'OPULENT OASIS',
+  domain: 'OPULENTOASIS.CO.IN',
+  whatsappNumber: '919820000000',
+  phoneDisplay: '+91 98200 00000 (WhatsApp & Direct)',
+  email: 'Sheldon@opulentoasis.co.in',
+  address: 'Ballard Estate & Gorai Coast, Mumbai, Maharashtra 400001',
+  aboutTitle: 'About Opulent Oasis',
+  aboutDescription:
+    'Opulent Oasis is a curated architectural hospitality and private expedition collective headquartered in Mumbai, Maharashtra. We design and steward private glasshouse villas, bespoke yacht and helicopter charters, and UIAA-guided high-altitude treks across Alibaug, Gorai, the Sahyadri Crest, Spiti Valley, Bhutan, and the Swiss Alps.',
+  stat1Value: '06',
+  stat1Label: 'Operating Stamp Destinations',
+  stat2Value: '100%',
+  stat2Label: 'Private & Vetted Sanctuaries',
+  stat3Value: '24/7',
+  stat3Label: 'Dedicated Personal Concierge',
+  faqs: [
+    {
+      q: 'How do I confirm a Stay, Tour, or Trek reservation?',
+      a: 'Select any category window on our home page, browse the 3D catalog, and click "Book". Our concierge confirms availability and shares a secure payment link.'
+    },
+    {
+      q: 'Are private transfers (speedboats / helicopters) included?',
+      a: 'Our Bhutan and Zermatt Heli-Odysseys include private aviation. For Alibaug and Gorai villas, private speedboat transfers from Gateway of India can be bundled upon request.'
+    },
+    {
+      q: 'Can itineraries and menus be customized for private groups?',
+      a: 'Yes. Every villa features a private farm-to-table chef, and all guided treks and tours can be tailored to your group’s pace and dietary preferences.'
+    }
+  ],
+  refundPolicy1:
+    '1. Flexible Rescheduling: Guests may reschedule any Stay, Tour, or Trek free of charge up to 14 days prior to check-in or expedition departure.',
+  refundPolicy2:
+    '2. Full & Partial Refunds: Cancellations made 21+ days before arrival receive a 100% refund. Cancellations between 7 and 20 days receive a 50% refund or 100% future travel credit valid for 12 months.',
+  refundPolicy3:
+    '3. Weather & Mountain Safety Guarantee: If severe weather or aviation advisories delay a trek or yacht/helicopter charter, Opulent Oasis provides an immediate full date transfer or refund.',
+  termsParagraph1:
+    'Welcome to Opulent Oasis (opulentoasis.co.in). By accessing our website or reserving a Stay, Tour, or Trek, you agree to abide by our sanctuary house rules, check-in security verification (valid government ID required for all guests), and environmental preservation guidelines.',
+  termsParagraph2:
+    'High-altitude expeditions in Spiti Valley, Sahyadri, Bhutan, and Zermatt require standard medical fitness declarations. All disputes are subject to the exclusive jurisdiction of the courts in Mumbai, Maharashtra, India.',
+  privacyParagraph1:
+    'Opulent Oasis respects your privacy and complies with India’s Digital Personal Data Protection Act (DPDP) and global GDPR standards. We collect only essential reservation details (name, contact number, travel dates, and guest preferences) required to fulfill your hospitality experience.',
+  privacyParagraph2:
+    'We never sell or share guest data with third-party advertisers. All inquiries and listings are protected via TLS encryption and strict HTTP security headers.'
+};
 
 // Precomputed SHA-256 digest of Curator Passcode ('oasis2026') for Zero-Plaintext Verification
 const CURATOR_PASSCODE_SHA256 = '457e60590089897c1e7b8293681b6577049a20b56634194a0e9d76294b929a22';
@@ -1164,6 +1220,21 @@ function StampGlobeHero({
 }
 
 export default function App() {
+  const [siteContent, setSiteContent] = useState(() => {
+    try {
+      const saved = localStorage.getItem('opulent_oasis_site_content_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.tagline === 'OPULENT OASIS • DESIGNED FOR EXPLORERS') {
+          parsed.tagline = 'OPULENT OASIS';
+        }
+        return { ...DEFAULT_SITE_CONTENT, ...parsed };
+      }
+      return DEFAULT_SITE_CONTENT;
+    } catch {
+      return DEFAULT_SITE_CONTENT;
+    }
+  });
   const [experiences, setExperiences] = useState(INITIAL_EXPERIENCES);
   const [selectedCategory, setSelectedCategory] = useState('Stay');
   const [activeLocation, setActiveLocation] = useState(DESTINATION_LOCATIONS[0]);
@@ -1172,8 +1243,20 @@ export default function App() {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [savedIds, setSavedIds] = useState([]);
   const [activeNavSection, setActiveNavSection] = useState('globe');
+  const [activePage, setActivePage] = useState('home');
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    category: 'Stay',
+    destination: 'Alibaug Coast',
+    message: '',
+    website_trap: ''
+  });
+  const [contactSubmitted, setContactSubmitted] = useState(false);
 
   const [hostModalOpen, setHostModalOpen] = useState(false);
+  const [studioTab, setStudioTab] = useState('listings');
   const [hostPasscode, setHostPasscode] = useState('');
   const [curatorTokenHash, setCuratorTokenHash] = useState('');
   const [authAttempts, setAuthAttempts] = useState(0);
@@ -1369,11 +1452,50 @@ export default function App() {
   };
 
   const handleWhatsAppReserve = (exp) => {
+    const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
     const text = encodeURIComponent(
-      `Hello Opulent Oasis! I would like to reserve:\n• ${sanitizeClientInput(exp.category, 20)}: ${sanitizeClientInput(exp.name, 120)}\n• Location: ${sanitizeClientInput(exp.locationName, 80)} (${sanitizeClientInput(exp.country, 50)})\n• Tariff: ${sanitizeClientInput(exp.price, 50)}\nPlease share availability.`
+      `Hello ${siteContent.businessName}! I would like to reserve:\n• ${sanitizeClientInput(exp.category, 20)}: ${sanitizeClientInput(exp.name, 120)}\n• Location: ${sanitizeClientInput(exp.locationName, 80)} (${sanitizeClientInput(exp.country, 50)})\n• Tariff: ${sanitizeClientInput(exp.price, 50)}\nPlease share availability.`
     );
     window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`,
+      `https://wa.me/${cleanPhone}?text=${text}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleNavigatePage = (pageKey) => {
+    setActivePage(pageKey);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveSiteContent = (e) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem('opulent_oasis_site_content_v1', JSON.stringify(siteContent));
+      setD1Status('Business Info & Mandatory Pages Updated Successfully!');
+    } catch {
+      setD1Status('Saved to Active Session!');
+    }
+  };
+
+  const handleResetSiteContent = () => {
+    setSiteContent(DEFAULT_SITE_CONTENT);
+    try {
+      localStorage.removeItem('opulent_oasis_site_content_v1');
+    } catch {}
+    setD1Status('Restored Default Business Content.');
+  };
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    if (contactForm.website_trap) return;
+    setContactSubmitted(true);
+    const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
+    const text = encodeURIComponent(
+      `Hello ${siteContent.businessName} Concierge!\n• Name: ${sanitizeClientInput(contactForm.name, 80)}\n• Email: ${sanitizeClientInput(contactForm.email, 100)}\n• Phone: ${sanitizeClientInput(contactForm.phone, 40)}\n• Interest: ${sanitizeClientInput(contactForm.category, 20)} in ${sanitizeClientInput(contactForm.destination, 60)}\n• Message: ${sanitizeClientInput(contactForm.message, 400)}`
+    );
+    window.open(
+      `https://wa.me/${cleanPhone}?text=${text}`,
       '_blank',
       'noopener,noreferrer'
     );
@@ -1517,16 +1639,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-6 sm:gap-14">
-              <span className="text-[10px] font-mono-tech tracking-widest opacity-60 hidden md:inline">
-                2026
-              </span>
-              <h1 className="font-script text-4xl sm:text-5xl lg:text-6xl text-[#f4efe6] tracking-wide leading-none">
-                Opulent Oasis
-              </h1>
-              <span className="text-[10px] font-mono-tech tracking-widest opacity-60 hidden md:inline">
-                2026
-              </span>
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => handleNavigatePage('home')}
+                className="font-script text-4xl sm:text-5xl lg:text-6xl text-[#f4efe6] hover:text-[#d6c5b3] transition tracking-wide leading-none"
+              >
+                {siteContent.businessName}
+              </button>
             </div>
 
             <div className="flex items-center gap-4 sm:gap-8">
@@ -1543,7 +1663,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-around max-w-3xl mx-auto text-[9px] text-[#d6c5b3]">
+          <div className="mt-4 pt-2 border-t border-white/10 flex items-center justify-around max-w-3xl mx-auto text-[9px] text-[#d6c5b3]">
             <span>▲</span>
             <span>▲</span>
             <span>▲</span>
@@ -1552,492 +1672,740 @@ export default function App() {
           </div>
         </header>
 
-        <section id="globe-hero-section" className="relative mx-2 sm:mx-8 my-2 rounded-[18px] overflow-hidden border border-white/15 shadow-2xl">
-          <StampGlobeHero
-            locations={DESTINATION_LOCATIONS}
-            selectedLocation={activeLocation}
-            onSelectLocation={(loc) => {
-              setActiveLocation(loc);
-              handleOpenCategoryCatalog(selectedCategory, loc.id);
-            }}
-            activeCategory={selectedCategory}
-            onScrollToExplorer={(loc) =>
-              handleOpenCategoryCatalog(selectedCategory, loc.id)
-            }
-          />
-        </section>
+        {activePage === 'home' ? (
+          <>
+            <section id="globe-hero-section" className="relative mx-2 sm:mx-8 my-2 rounded-[18px] overflow-hidden border border-white/15 shadow-2xl">
+              <StampGlobeHero
+                locations={DESTINATION_LOCATIONS}
+                selectedLocation={activeLocation}
+                onSelectLocation={(loc) => {
+                  setActiveLocation(loc);
+                  handleOpenCategoryCatalog(selectedCategory, loc.id);
+                }}
+                activeCategory={selectedCategory}
+                onScrollToExplorer={(loc) =>
+                  handleOpenCategoryCatalog(selectedCategory, loc.id)
+                }
+              />
+            </section>
 
-        <div className="relative z-20 px-4 sm:px-12 py-6 bg-[#18181a] border-t border-white/10">
-          <div className="flex items-center justify-center gap-6 sm:gap-12">
-            <div className="w-24 sm:w-40 h-3.5 barcode-strip text-[#f4efe6]/80" />
-            <span className="text-xs text-[#d6c5b3]">▼</span>
-            <div className="w-24 sm:w-40 h-3.5 barcode-strip text-[#f4efe6]/80" />
-          </div>
+            <div className="relative z-20 px-4 sm:px-12 py-6 bg-[#18181a] border-t border-white/10">
+              <div className="flex items-center justify-between max-w-4xl mx-auto">
+                <div className="inline-flex items-center">
+                  <span className="w-4 h-4 rounded-full border border-[#f4efe6]" />
+                  <span className="w-4 h-4 rounded-full bg-[#f4efe6] -ml-1.5" />
+                </div>
 
-          <div className="mt-5 flex items-center justify-between max-w-4xl mx-auto">
-            <div className="inline-flex items-center">
-              <span className="w-4 h-4 rounded-full border border-[#f4efe6]" />
-              <span className="w-4 h-4 rounded-full bg-[#f4efe6] -ml-1.5" />
-            </div>
+                <h2 className="font-script text-4xl sm:text-6xl lg:text-7xl text-[#f4efe6] leading-none text-center px-4">
+                  Start Your Voyage
+                </h2>
 
-            <h2 className="font-script text-4xl sm:text-6xl lg:text-7xl text-[#f4efe6] leading-none text-center px-4">
-              Start Your Voyage
-            </h2>
-
-            <div className="inline-flex items-center">
-              <span className="w-4 h-4 rounded-full bg-[#f4efe6]" />
-              <span className="w-4 h-4 rounded-full border border-[#f4efe6] -ml-1.5" />
-            </div>
-          </div>
-        </div>
-
-        <section
-          id="destination-toggler-section"
-          className="relative px-4 sm:px-10 pt-10 pb-20 border-t border-white/10 overflow-hidden min-h-[760px] flex flex-col justify-center"
-        >
-          <div
-            className="absolute inset-0 opacity-35 pointer-events-none transition-all duration-700"
-            style={{
-              backgroundImage: `url(${
-                categoryWindows.find((c) => c.category === selectedCategory)
-                  ?.image || activeLocation?.heroImage
-              })`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(55px) saturate(1.25)'
-            }}
-          />
-
-          <div className="relative z-10 max-w-6xl mx-auto w-full space-y-10">
-            <div className="text-center space-y-6">
-              <h2 className="font-sans-clean font-bold text-3xl sm:text-5xl tracking-tight text-white">
-                Choose a Destination
-              </h2>
-
-              <div className="mx-auto max-w-xl rounded-full p-1 border border-white/60 bg-black/25 backdrop-blur-2xl grid grid-cols-3 items-center shadow-2xl">
-                {['Stay', 'Tour', 'Trek'].map((option) => {
-                  const isActive = selectedCategory === option;
-                  return (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSelectedCategory(option);
-                        setCatalogLocationFilter('ALL');
-                      }}
-                      className={`py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-sans-clean transition-all duration-300 ${
-                        isActive
-                          ? 'bg-white/30 text-white font-bold shadow-[0_4px_20px_rgba(0,0,0,0.35)]'
-                          : 'text-white/75 hover:text-white font-medium'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {!isCatalogOpen ? (
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-center pt-4">
-                  {categoryWindows.map((win) => {
-                    const isActiveCard = selectedCategory === win.category;
-                    return (
-                      <div
-                        key={win.category}
-                        onClick={() =>
-                          handleOpenCategoryCatalog(win.category, 'ALL')
-                        }
-                        className={`group cursor-pointer relative rounded-[28px] overflow-hidden border transition-all duration-500 aspect-[3/4.15] flex flex-col justify-between p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.75)] ${
-                          isActiveCard
-                            ? 'border-white/80 md:scale-[1.06] z-20'
-                            : 'border-white/30 opacity-85 hover:opacity-100 hover:border-white/60 hover:-translate-y-1.5'
-                        }`}
-                      >
-                        <img
-                          src={win.image}
-                          alt={win.title}
-                          loading="lazy"
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85" />
-
-                        <div className="relative z-10">
-                          <h3 className="font-sans-clean font-bold text-2xl sm:text-[1.75rem] text-white leading-tight drop-shadow-md">
-                            {win.title}
-                          </h3>
-                          <p className="text-xs sm:text-sm text-white/85 mt-1">
-                            {win.subtitle}
-                          </p>
-                        </div>
-
-                        <div className="relative z-10 flex items-end justify-between">
-                          <div className="space-y-1">
-                            <div className="font-sans-clean font-bold text-sm sm:text-base text-white">
-                              {win.rating}
-                            </div>
-                            <div className="flex items-center gap-1 text-[#facc15]">
-                              {Array.from({ length: 5 }).map((_, sIdx) => (
-                                <Star
-                                  key={sIdx}
-                                  className="w-3.5 h-3.5 fill-[#facc15] text-[#facc15]"
-                                />
-                              ))}
-                            </div>
-                            <div className="pt-1 text-xs text-white/85 group-hover:text-white transition inline-flex items-center gap-1">
-                              <span>See more ({win.count} options) »</span>
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenCategoryCatalog(win.category, 'ALL');
-                            }}
-                            className="w-11 h-11 rounded-full bg-white text-[#09090b] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform"
-                            aria-label={`Open ${win.title} Catalog`}
-                          >
-                            <Plus className="w-5 h-5 stroke-[2.5]" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="inline-flex items-center">
+                  <span className="w-4 h-4 rounded-full bg-[#f4efe6]" />
+                  <span className="w-4 h-4 rounded-full border border-[#f4efe6] -ml-1.5" />
                 </div>
               </div>
-            ) : (
-              (() => {
-                const categoryCatalog = fullEnrichedCatalog.filter(
-                  (item) =>
-                    item.category.toLowerCase() ===
-                      selectedCategory.toLowerCase() &&
-                    (catalogLocationFilter === 'ALL' ||
-                      item.locationId === catalogLocationFilter)
-                );
+            </div>
 
-                const slides =
-                  categoryCatalog.length > 0
-                    ? categoryCatalog
-                    : fullEnrichedCatalog;
+            <section
+              id="destination-toggler-section"
+              className="relative px-4 sm:px-10 pt-10 pb-20 border-t border-white/10 overflow-hidden min-h-[760px] flex flex-col justify-center"
+            >
+              <div
+                className="absolute inset-0 opacity-35 pointer-events-none transition-all duration-700"
+                style={{
+                  backgroundImage: `url(${
+                    categoryWindows.find((c) => c.category === selectedCategory)
+                      ?.image || activeLocation?.heroImage
+                  })`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(55px) saturate(1.25)'
+                }}
+              />
 
-                const safeIndex =
-                  ((activeSlideIndex % slides.length) + slides.length) %
-                  slides.length;
-                const currentSlide = slides[safeIndex];
+              <div className="relative z-10 max-w-6xl mx-auto w-full space-y-10">
+                <div className="text-center space-y-6">
+                  <h2 className="font-sans-clean font-bold text-3xl sm:text-5xl tracking-tight text-white">
+                    Choose a Destination
+                  </h2>
 
-                const handlePrevSlide = () => {
-                  setActiveSlideIndex(
-                    (prev) => (prev - 1 + slides.length) % slides.length
-                  );
-                };
-
-                const handleNextSlide = () => {
-                  setActiveSlideIndex((prev) => (prev + 1) % slides.length);
-                };
-
-                return (
-                  <div className="relative pt-2 pb-4 flex flex-col items-center space-y-7 select-none">
-                    <div className="w-full max-w-3xl rounded-full px-3 sm:px-5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="mx-auto max-w-xl rounded-full p-1 border border-white/60 bg-black/25 backdrop-blur-2xl grid grid-cols-3 items-center shadow-2xl">
+                    {['Stay', 'Tour', 'Trek'].map((option) => {
+                      const isActive = selectedCategory === option;
+                      return (
                         <button
-                          onClick={() => setIsCatalogOpen(false)}
-                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                          title="Back to 3 Category Windows"
-                        >
-                          <ArrowLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handlePrevSlide}
-                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
-                          title="Previous in Catalog"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleNextSlide}
-                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
-                          title="Next in Catalog"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="flex-1 max-w-sm mx-2 px-4 py-1.5 rounded-full bg-black/30 border border-white/15 flex items-center justify-center gap-2 text-xs text-white/90 truncate">
-                        <Globe className="w-3.5 h-3.5 text-[#d6c5b3] shrink-0" />
-                        <span className="font-medium truncate">
-                          {selectedCategory} Catalog — {currentSlide.locationName} ({safeIndex + 1}/{slides.length})
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <button
-                          onClick={() => handleWhatsAppReserve(currentSlide)}
-                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                          title="Reserve This Option"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setIsCatalogOpen(false)}
-                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                          title="Close Catalog"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="relative w-full max-w-5xl h-[430px] sm:h-[470px] flex items-center justify-center">
-                      <div className="hidden md:flex flex-col items-center gap-3 p-2 rounded-full bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-2xl absolute left-2 lg:left-6 z-30">
-                        <button
-                          onClick={() => handleWhatsAppReserve(currentSlide)}
-                          className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center text-white transition"
-                          title="Inquire via Concierge"
-                        >
-                          <ArrowUpRight className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setSavedIds((prev) =>
-                              prev.includes(currentSlide.id)
-                                ? prev.filter((id) => id !== currentSlide.id)
-                                : [...prev, currentSlide.id]
-                            )
-                          }
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
-                            savedIds.includes(currentSlide.id)
-                              ? 'bg-[#e63946] text-white'
-                              : 'bg-white/10 hover:bg-white/25 text-white'
+                          key={option}
+                          onClick={() => {
+                            setSelectedCategory(option);
+                            setCatalogLocationFilter('ALL');
+                          }}
+                          className={`py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-sans-clean transition-all duration-300 ${
+                            isActive
+                              ? 'bg-white/30 text-white font-bold shadow-[0_4px_20px_rgba(0,0,0,0.35)]'
+                              : 'text-white/75 hover:text-white font-medium'
                           }`}
-                          title="Save to Wishlist"
                         >
-                          <Star className="w-4 h-4" />
+                          {option}
                         </button>
-                        <button
-                          onClick={() => setIsCatalogOpen(false)}
-                          className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
-                          title="Back to 3 Windows"
-                        >
-                          <Compass className="w-4 h-4" />
-                        </button>
-                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                      <div className="relative w-full max-w-[440px] sm:max-w-[490px] h-full flex items-center justify-center">
-                        {[-2, -1, 0, 1, 2].map((offset) => {
-                          const slideIdx =
-                            ((safeIndex + offset) % slides.length + slides.length) %
-                            slides.length;
-                          const item = slides[slideIdx];
-                          const isCenter = offset === 0;
+                {!isCatalogOpen ? (
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-center pt-4">
+                      {categoryWindows.map((win) => {
+                        const isActiveCard = selectedCategory === win.category;
+                        return (
+                          <div
+                            key={win.category}
+                            onClick={() =>
+                              handleOpenCategoryCatalog(win.category, 'ALL')
+                            }
+                            className={`group cursor-pointer relative rounded-[28px] overflow-hidden border transition-all duration-500 aspect-[3/4.15] flex flex-col justify-between p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.75)] ${
+                              isActiveCard
+                                ? 'border-white/80 md:scale-[1.06] z-20'
+                                : 'border-white/30 opacity-85 hover:opacity-100 hover:border-white/60 hover:-translate-y-1.5'
+                            }`}
+                          >
+                            <img
+                              src={win.image}
+                              alt={win.title}
+                              loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85" />
 
-                          const translateX = offset * 105;
-                          const scale =
-                            offset === 0
-                              ? 1
-                              : Math.abs(offset) === 1
-                              ? 0.86
-                              : 0.73;
-                          const zIndex = 30 - Math.abs(offset) * 5;
-                          const opacity =
-                            offset === 0
-                              ? 1
-                              : Math.abs(offset) === 1
-                              ? 0.82
-                              : 0.55;
+                            <div className="relative z-10">
+                              <h3 className="font-sans-clean font-bold text-2xl sm:text-[1.75rem] text-white leading-tight drop-shadow-md">
+                                {win.title}
+                              </h3>
+                              <p className="text-xs sm:text-sm text-white/85 mt-1">
+                                {win.subtitle}
+                              </p>
+                            </div>
 
-                          return (
-                            <div
-                              key={`${item.id}-offset-${offset}`}
-                              onClick={() => {
-                                if (offset < 0) handlePrevSlide();
-                                if (offset > 0) handleNextSlide();
-                              }}
-                              style={{
-                                transform: `translateX(${translateX}px) scale(${scale})`,
-                                zIndex,
-                                opacity
-                              }}
-                              className={`absolute inset-0 rounded-[32px] overflow-hidden border border-white/40 shadow-[0_30px_90px_rgba(0,0,0,0.75)] transition-all duration-500 flex flex-col justify-between bg-[#1a1a1f] ${
-                                isCenter
-                                  ? 'cursor-default'
-                                  : 'cursor-pointer hover:brightness-110'
-                              }`}
-                            >
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                className="absolute inset-0 w-full h-full object-cover"
-                              />
-
-                              {isCenter && (
-                                <div className="relative z-20 p-4 sm:p-5 flex items-center justify-between">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setIsCatalogOpen(false);
-                                    }}
-                                    className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
-                                    title="Back to 3 Category Windows"
-                                  >
-                                    <ChevronLeft className="w-4 h-4" />
-                                  </button>
-
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleWhatsAppReserve(item);
-                                    }}
-                                    className="px-4 py-1.5 rounded-full bg-black/40 hover:bg-white hover:text-black border border-white/30 backdrop-blur-md text-xs font-sans-clean font-semibold text-white transition inline-flex items-center gap-1.5 shadow-lg"
-                                  >
-                                    <ArrowUpRight className="w-3.5 h-3.5" />
-                                    <span>Book {item.category}</span>
-                                  </button>
-
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleNextSlide();
-                                    }}
-                                    className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
-                                    title="Next in Catalog"
-                                  >
-                                    <ChevronRight className="w-4 h-4" />
-                                  </button>
+                            <div className="relative z-10 flex items-end justify-between">
+                              <div className="space-y-1">
+                                <div className="font-sans-clean font-bold text-sm sm:text-base text-white">
+                                  {win.rating}
                                 </div>
-                              )}
+                                <div className="flex items-center gap-1 text-[#facc15]">
+                                  {Array.from({ length: 5 }).map((_, sIdx) => (
+                                    <Star
+                                      key={sIdx}
+                                      className="w-3.5 h-3.5 fill-[#facc15] text-[#facc15]"
+                                    />
+                                  ))}
+                                </div>
+                                <div className="pt-1 text-xs text-white/85 group-hover:text-white transition inline-flex items-center gap-1">
+                                  <span>See more ({win.count} options) »</span>
+                                </div>
+                              </div>
 
-                              <div
-                                className={`relative z-20 mt-auto p-5 sm:p-6 bg-gradient-to-t from-black/90 via-black/75 to-black/30 backdrop-blur-xl border-t border-white/15 transition-opacity duration-300 ${
-                                  isCenter
-                                    ? 'opacity-100'
-                                    : 'opacity-0 pointer-events-none'
-                                }`}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenCategoryCatalog(win.category, 'ALL');
+                                }}
+                                className="w-11 h-11 rounded-full bg-white text-[#09090b] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform"
+                                aria-label={`Open ${win.title} Catalog`}
                               >
-                                <div className="flex items-baseline justify-between gap-3 mb-2">
-                                  <h3 className="font-sans-clean font-bold text-lg sm:text-xl text-white leading-snug">
-                                    {item.name}
-                                  </h3>
-                                  <span className="text-xs font-mono-tech font-bold text-[#d6c5b3] shrink-0">
-                                    {item.price}
-                                  </span>
+                                <Plus className="w-5 h-5 stroke-[2.5]" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  (() => {
+                    const categoryCatalog = fullEnrichedCatalog.filter(
+                      (item) =>
+                        item.category.toLowerCase() ===
+                          selectedCategory.toLowerCase() &&
+                        (catalogLocationFilter === 'ALL' ||
+                          item.locationId === catalogLocationFilter)
+                    );
+
+                    const slides =
+                      categoryCatalog.length > 0
+                        ? categoryCatalog
+                        : fullEnrichedCatalog;
+
+                    const safeIndex =
+                      ((activeSlideIndex % slides.length) + slides.length) %
+                      slides.length;
+                    const currentSlide = slides[safeIndex];
+
+                    const handlePrevSlide = () => {
+                      setActiveSlideIndex(
+                        (prev) => (prev - 1 + slides.length) % slides.length
+                      );
+                    };
+
+                    const handleNextSlide = () => {
+                      setActiveSlideIndex((prev) => (prev + 1) % slides.length);
+                    };
+
+                    return (
+                      <div className="relative pt-2 pb-4 flex flex-col items-center space-y-7 select-none">
+                        <div className="w-full max-w-3xl rounded-full px-3 sm:px-5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <button
+                              onClick={() => setIsCatalogOpen(false)}
+                              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                              title="Back to 3 Category Windows"
+                            >
+                              <ArrowLeft className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={handlePrevSlide}
+                              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
+                              title="Previous in Catalog"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={handleNextSlide}
+                              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
+                              title="Next in Catalog"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex-1 max-w-sm mx-2 px-4 py-1.5 rounded-full bg-black/30 border border-white/15 flex items-center justify-center gap-2 text-xs text-white/90 truncate">
+                            <Globe className="w-3.5 h-3.5 text-[#d6c5b3] shrink-0" />
+                            <span className="font-medium truncate">
+                              {selectedCategory} Catalog — {currentSlide.locationName} ({safeIndex + 1}/{slides.length})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <button
+                              onClick={() => handleWhatsAppReserve(currentSlide)}
+                              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                              title="Reserve This Option"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setIsCatalogOpen(false)}
+                              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                              title="Close Catalog"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="relative w-full max-w-5xl h-[430px] sm:h-[470px] flex items-center justify-center">
+                          <div className="hidden md:flex flex-col items-center gap-3 p-2 rounded-full bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-2xl absolute left-2 lg:left-6 z-30">
+                            <button
+                              onClick={() => handleWhatsAppReserve(currentSlide)}
+                              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center text-white transition"
+                              title="Inquire via Concierge"
+                            >
+                              <ArrowUpRight className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                setSavedIds((prev) =>
+                                  prev.includes(currentSlide.id)
+                                    ? prev.filter((id) => id !== currentSlide.id)
+                                    : [...prev, currentSlide.id]
+                                )
+                              }
+                              className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
+                                savedIds.includes(currentSlide.id)
+                                  ? 'bg-[#e63946] text-white'
+                                  : 'bg-white/10 hover:bg-white/25 text-white'
+                              }`}
+                              title="Save to Wishlist"
+                            >
+                              <Star className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setIsCatalogOpen(false)}
+                              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
+                              title="Back to 3 Windows"
+                            >
+                              <Compass className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="relative w-full max-w-[440px] sm:max-w-[490px] h-full flex items-center justify-center">
+                            {[-2, -1, 0, 1, 2].map((offset) => {
+                              const slideIdx =
+                                ((safeIndex + offset) % slides.length + slides.length) %
+                                slides.length;
+                              const item = slides[slideIdx];
+                              const isCenter = offset === 0;
+
+                              const translateX = offset * 105;
+                              const scale =
+                                offset === 0
+                                  ? 1
+                                  : Math.abs(offset) === 1
+                                  ? 0.86
+                                  : 0.73;
+                              const zIndex = 30 - Math.abs(offset) * 5;
+                              const opacity =
+                                offset === 0
+                                  ? 1
+                                  : Math.abs(offset) === 1
+                                  ? 0.82
+                                  : 0.55;
+
+                              return (
+                                <div
+                                  key={`${item.id}-offset-${offset}`}
+                                  onClick={() => {
+                                    if (offset < 0) handlePrevSlide();
+                                    if (offset > 0) handleNextSlide();
+                                  }}
+                                  style={{
+                                    transform: `translateX(${translateX}px) scale(${scale})`,
+                                    zIndex,
+                                    opacity
+                                  }}
+                                  className={`absolute inset-0 rounded-[32px] overflow-hidden border border-white/40 shadow-[0_30px_90px_rgba(0,0,0,0.75)] transition-all duration-500 flex flex-col justify-between bg-[#1a1a1f] ${
+                                    isCenter
+                                      ? 'cursor-default'
+                                      : 'cursor-pointer hover:brightness-110'
+                                  }`}
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                  />
+
+                                  {isCenter && (
+                                    <div className="relative z-20 p-4 sm:p-5 flex items-center justify-between">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setIsCatalogOpen(false);
+                                        }}
+                                        className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                                        title="Back to 3 Category Windows"
+                                      >
+                                        <ChevronLeft className="w-4 h-4" />
+                                      </button>
+
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleWhatsAppReserve(item);
+                                        }}
+                                        className="px-4 py-1.5 rounded-full bg-black/40 hover:bg-white hover:text-black border border-white/30 backdrop-blur-md text-xs font-sans-clean font-semibold text-white transition inline-flex items-center gap-1.5 shadow-lg"
+                                      >
+                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                        <span>Book {item.category}</span>
+                                      </button>
+
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleNextSlide();
+                                        }}
+                                        className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                                        title="Next in Catalog"
+                                      >
+                                        <ChevronRight className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  <div
+                                    className={`relative z-20 mt-auto p-5 sm:p-6 bg-gradient-to-t from-black/90 via-black/75 to-black/30 backdrop-blur-xl border-t border-white/15 transition-opacity duration-300 ${
+                                      isCenter
+                                        ? 'opacity-100'
+                                        : 'opacity-0 pointer-events-none'
+                                    }`}
+                                  >
+                                    <div className="flex items-baseline justify-between gap-3 mb-2">
+                                      <h3 className="font-sans-clean font-bold text-lg sm:text-xl text-white leading-snug">
+                                        {item.name}
+                                      </h3>
+                                      <span className="text-xs font-mono-tech font-bold text-[#d6c5b3] shrink-0">
+                                        {item.price}
+                                      </span>
+                                    </div>
+
+                                    <p className="text-xs sm:text-sm text-white/90 leading-relaxed line-clamp-2 mb-3">
+                                      {item.description}
+                                    </p>
+
+                                    <div className="text-[11px] text-white/65 space-y-0.5 font-sans-clean">
+                                      <div>
+                                        Location: {item.locationName} ({item.country}) • ★ {item.rating}
+                                      </div>
+                                      <div>
+                                        Duration: {item.duration} • {item.groupSize}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
+                              );
+                            })}
+                          </div>
+                        </div>
 
-                                <p className="text-xs sm:text-sm text-white/90 leading-relaxed line-clamp-2 mb-3">
-                                  {item.description}
-                                </p>
+                        <div className="flex flex-col items-center space-y-3">
+                          <div className="rounded-full px-3.5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 sm:gap-5">
+                            <button
+                              onClick={handlePrevSlide}
+                              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                              aria-label="Previous slide"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
 
-                                <div className="text-[11px] text-white/65 space-y-0.5 font-sans-clean">
-                                  <div>
-                                    Location: {item.locationName} ({item.country}) • ★ {item.rating}
-                                  </div>
-                                  <div>
-                                    Duration: {item.duration} • {item.groupSize}
-                                  </div>
+                            <div className="flex items-center gap-3 pr-2">
+                              <img
+                                src={currentSlide.image}
+                                alt={currentSlide.name}
+                                className="w-10 h-10 rounded-full object-cover border border-white/40"
+                              />
+                              <div className="text-left">
+                                <div className="font-sans-clean font-bold text-xs sm:text-sm text-white leading-tight">
+                                  {currentSlide.locationName}
+                                </div>
+                                <div className="text-[10px] text-white/70">
+                                  {selectedCategory} Catalog • Option {safeIndex + 1} of {slides.length}
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
 
-                    <div className="flex flex-col items-center space-y-3">
-                      <div className="rounded-full px-3.5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 sm:gap-5">
-                        <button
-                          onClick={handlePrevSlide}
-                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                          aria-label="Previous slide"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
+                            <div className="hidden md:flex items-center gap-1 border-l border-white/15 pl-3">
+                              <button
+                                onClick={() => setCatalogLocationFilter('ALL')}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
+                                  catalogLocationFilter === 'ALL'
+                                    ? 'bg-white text-black font-bold'
+                                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                                }`}
+                              >
+                                ALL
+                              </button>
+                              {DESTINATION_LOCATIONS.map((lw) => (
+                                <button
+                                  key={lw.id}
+                                  onClick={() => {
+                                    setActiveLocation(lw);
+                                    setCatalogLocationFilter(lw.id);
+                                  }}
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
+                                    catalogLocationFilter === lw.id
+                                      ? 'bg-white text-black font-bold'
+                                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                                  }`}
+                                >
+                                  {lw.stampTitle}
+                                </button>
+                              ))}
+                            </div>
 
-                        <div className="flex items-center gap-3 pr-2">
-                          <img
-                            src={currentSlide.image}
-                            alt={currentSlide.name}
-                            className="w-10 h-10 rounded-full object-cover border border-white/40"
-                          />
-                          <div className="text-left">
-                            <div className="font-sans-clean font-bold text-xs sm:text-sm text-white leading-tight">
-                              {currentSlide.locationName}
-                            </div>
-                            <div className="text-[10px] text-white/70">
-                              {selectedCategory} Catalog • Option {safeIndex + 1} of {slides.length}
-                            </div>
+                            <button
+                              onClick={handleNextSlide}
+                              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                              aria-label="Next slide"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-2 opacity-60">
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                            <span className="w-24 h-1.5 rounded-full bg-white" />
                           </div>
                         </div>
-
-                        <div className="hidden md:flex items-center gap-1 border-l border-white/15 pl-3">
-                          <button
-                            onClick={() => setCatalogLocationFilter('ALL')}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
-                              catalogLocationFilter === 'ALL'
-                                ? 'bg-white text-black font-bold'
-                                : 'text-white/70 hover:text-white hover:bg-white/10'
-                            }`}
-                          >
-                            ALL
-                          </button>
-                          {DESTINATION_LOCATIONS.map((lw) => (
-                            <button
-                              key={lw.id}
-                              onClick={() => {
-                                setActiveLocation(lw);
-                                setCatalogLocationFilter(lw.id);
-                              }}
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
-                                catalogLocationFilter === lw.id
-                                  ? 'bg-white text-black font-bold'
-                                  : 'text-white/70 hover:text-white hover:bg-white/10'
-                              }`}
-                            >
-                              {lw.stampTitle}
-                            </button>
-                          ))}
-                        </div>
-
-                        <button
-                          onClick={handleNextSlide}
-                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                          aria-label="Next slide"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
                       </div>
+                    );
+                  })()
+                )}
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="px-4 sm:px-12 py-12 sm:py-16 min-h-[680px]">
+            <div className="max-w-4xl mx-auto space-y-8">
+              <button
+                type="button"
+                onClick={() => handleNavigatePage('home')}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-mono-tech uppercase tracking-widest text-[#d6c5b3] transition"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to 3D Stamp Atlas</span>
+              </button>
 
-                      <div className="flex items-center gap-2 opacity-60">
-                        <span className="w-2 h-2 rounded-full bg-white" />
-                        <span className="w-24 h-1.5 rounded-full bg-white" />
+              {activePage === 'about' && (
+                <div className="space-y-6 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10">
+                  <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                    OUR STORY & MANIFESTO
+                  </span>
+                  <h2 className="font-script text-5xl sm:text-6xl text-[#f4efe6]">
+                    {siteContent.aboutTitle}
+                  </h2>
+                  <p className="text-sm sm:text-base text-white/80 leading-relaxed whitespace-pre-line">
+                    {siteContent.aboutDescription}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="font-serif-editorial text-3xl text-[#d6c5b3]">{siteContent.stat1Value}</div>
+                      <div className="text-xs text-white/70 mt-1">{siteContent.stat1Label}</div>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="font-serif-editorial text-3xl text-[#d6c5b3]">{siteContent.stat2Value}</div>
+                      <div className="text-xs text-white/70 mt-1">{siteContent.stat2Label}</div>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                      <div className="font-serif-editorial text-3xl text-[#d6c5b3]">{siteContent.stat3Value}</div>
+                      <div className="text-xs text-white/70 mt-1">{siteContent.stat3Label}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activePage === 'contact' && (
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10">
+                  <div className="lg:col-span-2 space-y-5">
+                    <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                      24/7 PRIVATE DESK
+                    </span>
+                    <h2 className="font-script text-5xl text-[#f4efe6]">
+                      Contact Us
+                    </h2>
+                    <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
+                      Reach our hospitality concierge for private villa reservations, helicopter transfers, or custom expedition itineraries.
+                    </p>
+                    <div className="space-y-3 pt-2 text-xs text-white/85">
+                      <div className="flex items-center gap-3">
+                        <Phone className="w-4 h-4 text-[#d6c5b3] shrink-0" />
+                        <span>{siteContent.phoneDisplay}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-4 h-4 text-[#d6c5b3] shrink-0" />
+                        <span>{siteContent.email}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-[#d6c5b3] shrink-0" />
+                        <span>{siteContent.address}</span>
                       </div>
                     </div>
                   </div>
-                );
-              })()
-            )}
-          </div>
-        </section>
 
-        <footer className="px-4 sm:px-10 py-5 bg-[#141416] border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono-tech uppercase tracking-[0.22em] text-white/60">
-          <span>OPULENT OASIS • DESIGNED FOR EXPLORERS</span>
-          <div className="flex items-center gap-6">
-            <span>▲</span>
-            <div className="w-32 h-3 barcode-strip text-white/75" />
-            <span>▲</span>
+                  <form
+                    onSubmit={handleContactSubmit}
+                    className="lg:col-span-3 space-y-4 bg-white/[0.04] border border-white/10 rounded-2xl p-6"
+                  >
+                    <input
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={contactForm.website_trap}
+                      onChange={(e) =>
+                        setContactForm({ ...contactForm, website_trap: e.target.value })
+                      }
+                      className="hidden"
+                      aria-hidden="true"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <input
+                        required
+                        type="text"
+                        placeholder="Your Full Name"
+                        value={contactForm.name}
+                        onChange={(e) =>
+                          setContactForm({ ...contactForm, name: e.target.value })
+                        }
+                        className="px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-xs text-white"
+                      />
+                      <input
+                        required
+                        type="email"
+                        placeholder="Email Address"
+                        value={contactForm.email}
+                        onChange={(e) =>
+                          setContactForm({ ...contactForm, email: e.target.value })
+                        }
+                        className="px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-xs text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <input
+                        required
+                        type="tel"
+                        placeholder="Phone / WhatsApp"
+                        value={contactForm.phone}
+                        onChange={(e) =>
+                          setContactForm({ ...contactForm, phone: e.target.value })
+                        }
+                        className="px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-xs text-white"
+                      />
+                      <select
+                        value={contactForm.category}
+                        onChange={(e) =>
+                          setContactForm({ ...contactForm, category: e.target.value })
+                        }
+                        className="px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-xs text-white"
+                      >
+                        <option value="Stay">Curated Stay</option>
+                        <option value="Tour">Bespoke Tour</option>
+                        <option value="Trek">Guided Trek</option>
+                      </select>
+                      <select
+                        value={contactForm.destination}
+                        onChange={(e) =>
+                          setContactForm({ ...contactForm, destination: e.target.value })
+                        }
+                        className="px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-xs text-white"
+                      >
+                        {DESTINATION_LOCATIONS.map((d) => (
+                          <option key={d.id} value={d.name}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <textarea
+                      required
+                      rows={4}
+                      placeholder="Preferred dates, number of guests, or special requests..."
+                      value={contactForm.message}
+                      onChange={(e) =>
+                        setContactForm({ ...contactForm, message: e.target.value })
+                      }
+                      className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/20 text-xs text-white"
+                    />
+                    {contactSubmitted && (
+                      <p className="text-xs text-[#9eb393]">
+                        Concierge dispatch initiated! Opening WhatsApp confirmation...
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      className="w-full py-3.5 rounded-full bg-[#f6eedc] text-[#09090b] font-bold text-xs uppercase tracking-widest hover:bg-[#d6c5b3] transition inline-flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send Concierge Inquiry</span>
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {activePage === 'faq' && (
+                <div className="space-y-6 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10">
+                  <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                    GUEST ASSISTANCE
+                  </span>
+                  <h2 className="font-script text-5xl text-[#f4efe6]">
+                    Frequently Asked Questions
+                  </h2>
+                  <div className="space-y-4">
+                    {(siteContent.faqs || DEFAULT_SITE_CONTENT.faqs).map((item, i) => (
+                      <div key={i} className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                        <h3 className="font-sans-clean font-bold text-base text-white">{item.q}</h3>
+                        <p className="text-xs sm:text-sm text-white/75 leading-relaxed">{item.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activePage === 'refunds' && (
+                <div className="space-y-5 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10 text-xs sm:text-sm text-white/80 leading-relaxed">
+                  <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                    BOOKING ASSURANCE
+                  </span>
+                  <h2 className="font-script text-5xl text-[#f4efe6]">
+                    Cancellation & Refund Policy
+                  </h2>
+                  <p className="whitespace-pre-line">{siteContent.refundPolicy1}</p>
+                  <p className="whitespace-pre-line">{siteContent.refundPolicy2}</p>
+                  <p className="whitespace-pre-line">{siteContent.refundPolicy3}</p>
+                </div>
+              )}
+
+              {activePage === 'terms' && (
+                <div className="space-y-5 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10 text-xs sm:text-sm text-white/80 leading-relaxed">
+                  <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                    LEGAL GOVERNANCE
+                  </span>
+                  <h2 className="font-script text-5xl text-[#f4efe6]">
+                    Terms & Conditions
+                  </h2>
+                  <p className="whitespace-pre-line">{siteContent.termsParagraph1}</p>
+                  <p className="whitespace-pre-line">{siteContent.termsParagraph2}</p>
+                </div>
+              )}
+
+              {activePage === 'privacy' && (
+                <div className="space-y-5 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10 text-xs sm:text-sm text-white/80 leading-relaxed">
+                  <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                    DATA PROTECTION & DPDP COMPLIANCE
+                  </span>
+                  <h2 className="font-script text-5xl text-[#f4efe6]">
+                    Privacy Policy
+                  </h2>
+                  <p className="whitespace-pre-line">{siteContent.privacyParagraph1}</p>
+                  <p className="whitespace-pre-line">
+                    {siteContent.privacyParagraph2} For data deletion requests, contact <code>{siteContent.email}</code>.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        <footer className="px-4 sm:px-10 py-6 bg-[#141416] border-t border-white/10 space-y-4">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[10px] font-mono-tech uppercase tracking-widest text-white/75">
+            <button onClick={() => handleNavigatePage('home')} className="hover:text-[#d6c5b3] transition">
+              3D Atlas
+            </button>
+            <button onClick={() => handleNavigatePage('about')} className="hover:text-[#d6c5b3] transition">
+              About Us
+            </button>
+            <button onClick={() => handleNavigatePage('contact')} className="hover:text-[#d6c5b3] transition">
+              Contact Us
+            </button>
+            <button onClick={() => handleNavigatePage('faq')} className="hover:text-[#d6c5b3] transition">
+              FAQs
+            </button>
+            <button onClick={() => handleNavigatePage('refunds')} className="hover:text-[#d6c5b3] transition">
+              Cancellation & Refunds
+            </button>
+            <button onClick={() => handleNavigatePage('terms')} className="hover:text-[#d6c5b3] transition">
+              Terms & Conditions
+            </button>
+            <button onClick={() => handleNavigatePage('privacy')} className="hover:text-[#d6c5b3] transition">
+              Privacy Policy
+            </button>
           </div>
-          <span>OPULENTOASIS.CO.IN</span>
+
+          <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono-tech uppercase tracking-[0.22em] text-white/60">
+            <span>{siteContent.tagline}</span>
+            <span>{siteContent.domain}</span>
+          </div>
         </footer>
       </div>
 
       {hostModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-[28px] bg-[#161619] border border-white/20 p-7 text-[#f4efe6] space-y-5">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[28px] bg-[#161619] border border-white/20 p-6 sm:p-7 text-[#f4efe6] space-y-5">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <span className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
-                  CLOUDFLARE D1 EDGE STUDIO
+                  CURATOR & BUSINESS CMS STUDIO
                 </span>
-                <h3 className="font-serif-editorial text-3xl">Curator Host Portal</h3>
+                <h3 className="font-serif-editorial text-3xl">Manage Listings & Pages</h3>
               </div>
               <button onClick={() => setHostModalOpen(false)}>
                 <X className="w-5 h-5" />
@@ -2050,7 +2418,7 @@ export default function App() {
                 className="space-y-4 text-xs"
               >
                 <p className="text-white/70">
-                  Enter curator passcode (<code className="text-[#d6c5b3]">oasis2026</code>) verified via Web Crypto SHA-256 to publish to any Stamp Location.
+                  Enter curator passcode (<code className="text-[#d6c5b3]">oasis2026</code>) verified via Web Crypto SHA-256 to publish listings or customize your business pages.
                 </p>
                 <input
                   type="password"
@@ -2073,54 +2441,278 @@ export default function App() {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleCreateD1Experience} className="space-y-3 text-xs">
-                <input
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  value={newExp.website_url_trap}
-                  onChange={(e) =>
-                    setNewExp({ ...newExp, website_url_trap: e.target.value })
-                  }
-                  className="hidden"
-                  aria-hidden="true"
-                />
-                <div className="grid grid-cols-2 gap-2.5">
-                  <input
-                    required
-                    type="text"
-                    placeholder="Price (e.g. ₹45,000 / night)"
-                    value={newExp.price}
-                    onChange={(e) => setNewExp({ ...newExp, price: e.target.value })}
-                    className="px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Duration (e.g. 3 Days)"
-                    value={newExp.duration}
-                    onChange={(e) =>
-                      setNewExp({ ...newExp, duration: e.target.value })
-                    }
-                    className="px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
-                  />
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-black/40 border border-white/15 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudioTab('listings');
+                      setD1Status('');
+                    }}
+                    className={`py-2 rounded-full font-bold transition ${
+                      studioTab === 'listings'
+                        ? 'bg-[#f6eedc] text-[#09090b]'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    1. Add Stay / Tour / Trek
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudioTab('pages');
+                      setD1Status('');
+                    }}
+                    className={`py-2 rounded-full font-bold transition ${
+                      studioTab === 'pages'
+                        ? 'bg-[#f6eedc] text-[#09090b]'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    2. Edit Business & Pages
+                  </button>
                 </div>
-                <textarea
-                  rows={2}
-                  placeholder="Description..."
-                  value={newExp.description}
-                  onChange={(e) =>
-                    setNewExp({ ...newExp, description: e.target.value })
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
-                />
-                {d1Status && <p className="text-[#9eb393] font-bold">{d1Status}</p>}
-                <button
-                  type="submit"
-                  className="w-full py-3 rounded-full bg-[#f6eedc] text-[#09090b] font-bold uppercase tracking-wider"
-                >
-                  Publish to Location Window & D1
-                </button>
-              </form>
+
+                {studioTab === 'listings' ? (
+                  <form onSubmit={handleCreateD1Experience} className="space-y-3 text-xs">
+                    <input
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={newExp.website_url_trap}
+                      onChange={(e) =>
+                        setNewExp({ ...newExp, website_url_trap: e.target.value })
+                      }
+                      className="hidden"
+                      aria-hidden="true"
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <select
+                        value={newExp.locationId}
+                        onChange={(e) =>
+                          setNewExp({ ...newExp, locationId: e.target.value })
+                        }
+                        className="px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20 text-white"
+                      >
+                        {DESTINATION_LOCATIONS.map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.name} ({loc.country})
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={newExp.category}
+                        onChange={(e) =>
+                          setNewExp({ ...newExp, category: e.target.value })
+                        }
+                        className="px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20 text-white"
+                      >
+                        <option value="Stay">Stay</option>
+                        <option value="Tour">Tour</option>
+                        <option value="Trek">Trek</option>
+                      </select>
+                    </div>
+                    <input
+                      required
+                      type="text"
+                      placeholder="Experience / Villa Title"
+                      value={newExp.name}
+                      onChange={(e) => setNewExp({ ...newExp, name: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
+                    />
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <input
+                        required
+                        type="text"
+                        placeholder="Price (e.g. ₹45,000 / night)"
+                        value={newExp.price}
+                        onChange={(e) => setNewExp({ ...newExp, price: e.target.value })}
+                        className="px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Duration (e.g. 3 Days)"
+                        value={newExp.duration}
+                        onChange={(e) =>
+                          setNewExp({ ...newExp, duration: e.target.value })
+                        }
+                        className="px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
+                      />
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="HTTPS Image URL (https://...)"
+                      value={newExp.image}
+                      onChange={(e) => setNewExp({ ...newExp, image: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
+                    />
+                    <textarea
+                      rows={2}
+                      placeholder="Description..."
+                      value={newExp.description}
+                      onChange={(e) =>
+                        setNewExp({ ...newExp, description: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
+                    />
+                    {d1Status && <p className="text-[#9eb393] font-bold">{d1Status}</p>}
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-full bg-[#f6eedc] text-[#09090b] font-bold uppercase tracking-wider"
+                    >
+                      Publish to Location Window & D1
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSaveSiteContent} className="space-y-3.5 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                          Brand Name
+                        </label>
+                        <input
+                          type="text"
+                          value={siteContent.businessName}
+                          onChange={(e) =>
+                            setSiteContent({ ...siteContent, businessName: e.target.value })
+                          }
+                          className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                          WhatsApp Number (Digits with Country Code)
+                        </label>
+                        <input
+                          type="text"
+                          value={siteContent.whatsappNumber}
+                          onChange={(e) =>
+                            setSiteContent({ ...siteContent, whatsappNumber: e.target.value })
+                          }
+                          className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                          Contact Phone Display
+                        </label>
+                        <input
+                          type="text"
+                          value={siteContent.phoneDisplay}
+                          onChange={(e) =>
+                            setSiteContent({ ...siteContent, phoneDisplay: e.target.value })
+                          }
+                          className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                          Official Email
+                        </label>
+                        <input
+                          type="email"
+                          value={siteContent.email}
+                          onChange={(e) =>
+                            setSiteContent({ ...siteContent, email: e.target.value })
+                          }
+                          className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                        Office / Sanctuary Address (Contact Page)
+                      </label>
+                      <input
+                        type="text"
+                        value={siteContent.address}
+                        onChange={(e) =>
+                          setSiteContent({ ...siteContent, address: e.target.value })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                        About Us Story
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={siteContent.aboutDescription}
+                        onChange={(e) =>
+                          setSiteContent({ ...siteContent, aboutDescription: e.target.value })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                        Cancellation & Refund Policy
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={siteContent.refundPolicy2}
+                        onChange={(e) =>
+                          setSiteContent({ ...siteContent, refundPolicy2: e.target.value })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                        Terms & Conditions
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={siteContent.termsParagraph1}
+                        onChange={(e) =>
+                          setSiteContent({ ...siteContent, termsParagraph1: e.target.value })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
+                        Privacy Policy
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={siteContent.privacyParagraph1}
+                        onChange={(e) =>
+                          setSiteContent({ ...siteContent, privacyParagraph1: e.target.value })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/20"
+                      />
+                    </div>
+
+                    {d1Status && <p className="text-[#9eb393] font-bold">{d1Status}</p>}
+
+                    <div className="flex items-center gap-3 pt-1">
+                      <button
+                        type="submit"
+                        className="flex-1 py-3 rounded-full bg-[#f6eedc] text-[#09090b] font-bold uppercase tracking-wider"
+                      >
+                        Save Custom Page Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetSiteContent}
+                        className="px-4 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white/80 font-mono-tech text-[10px] uppercase"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             )}
           </div>
         </div>
