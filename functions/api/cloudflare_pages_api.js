@@ -1,7 +1,3 @@
-// ============================================================================
-// CLOUDFLARE PAGES FUNCTIONS (Edge API Handler for D1 Database)
-// ============================================================================
-
 export async function onRequestGet(context) {
   try {
     const { env } = context;
