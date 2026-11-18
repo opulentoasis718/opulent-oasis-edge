@@ -832,6 +832,93 @@ function StampGlobeHero({
     const rimLight = new THREE.DirectionalLight(0xd6c5b3, 0.9);
     rimLight.position.set(-4, -2, -3);
     scene.add(rimLight);
+
+    let prevPointer = { x: 0, y: 0 };
+    const domElem = renderer.domElement;
+
+    const onPointerDown = (e) => {
+      isDraggingRef.current = true;
+      prevPointer = { x: e.clientX, y: e.clientY };
+    };
+
+    const onPointerMove = (e) => {
+      if (!isDraggingRef.current) return;
+      const dx = e.clientX - prevPointer.x;
+      const dy = e.clientY - prevPointer.y;
+      prevPointer = { x: e.clientX, y: e.clientY };
+      targetRotRef.current.y += dx * 0.0065;
+      targetRotRef.current.x = Math.max(
+        -0.75,
+        Math.min(0.75, targetRotRef.current.x + dy * 0.005)
+      );
+    };
+
+    const onPointerUp = () => {
+      isDraggingRef.current = false;
+    };
+
+    domElem.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
+    const handleResize = () => {
+      if (!container) return;
+      const nw = container.clientWidth || 800;
+      const nh = container.clientHeight || 540;
+      camera.aspect = nw / nh;
+      camera.updateProjectionMatrix();
+      renderer.setSize(nw, nh);
+    };
+    window.addEventListener('resize', handleResize);
+
+    const stampRadialOffsets = [
+      { dx: -68, dy: 28 },
+      { dx: -76, dy: -36 },
+      { dx: 66, dy: 34 },
+      { dx: 18, dy: -66 },
+      { dx: 82, dy: -16 },
+      { dx: -58, dy: -48 }
+    ];
+
+    let reqId;
+    const animate = () => {
+      reqId = requestAnimationFrame(animate);
+
+      if (!isDraggingRef.current) {
+        targetRotRef.current.y += 0.0008;
+      }
+
+      globeGroup.rotation.y += (targetRotRef.current.y - globeGroup.rotation.y) * 0.08;
+      globeGroup.rotation.x += (targetRotRef.current.x - globeGroup.rotation.x) * 0.08;
+      ringMesh.rotation.z += 0.0009;
+
+      globeGroup.updateMatrixWorld();
+
+      const cw = container.clientWidth || 800;
+      const ch = container.clientHeight || 540;
+
+      const projected = anchorNodes.map((node, idx) => {
+        const worldPos = node.localPos.clone().applyMatrix4(globeGroup.matrixWorld);
+        const normal = worldPos.clone().normalize();
+        const camDir = camera.position.clone().normalize();
+        const dotVis = normal.dot(camDir);
+
+        const ndc = worldPos.clone().project(camera);
+        const anchorX = (ndc.x * 0.5 + 0.5) * cw;
+        const anchorY = (-ndc.y * 0.5 + 0.5) * ch;
+
+        const offset = stampRadialOffsets[idx % stampRadialOffsets.length];
+        return {
+          loc: node.loc,
+          anchorX,
+          anchorY,
+          x: anchorX + offset.dx,
+          y: anchorY + offset.dy,
+          visible: dotVis > 0.08,
+          zIndex: Math.round((dotVis + 1) * 10)
+        };
+      });
+
       setStampCoords(projected);
       renderer.render(scene, camera);
     };
@@ -926,22 +1013,6 @@ function StampGlobeHero({
         })}
       </div>
 
-      <div className="absolute top-5 left-5 right-5 flex flex-wrap items-center justify-between gap-3 pointer-events-none z-30">
-        <div className="pointer-events-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/65 border border-white/15 backdrop-blur-md text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
-          <Globe className="w-3.5 h-3.5" />
-          <span>Drag 3D Globe or Click Any Postage Stamp</span>
-        </div>
-
-        <div className="pointer-events-auto flex flex-wrap gap-1.5">
-          {locations.map((loc) => (
-            <button
-              key={loc.id}
-              onClick={() => onSelectLocation(loc)}
-              className={`px-3 py-1 rounded-full text-[10px] font-mono-tech uppercase tracking-wider border transition ${
-                selectedLocation?.id === loc.id
-                  ? 'bg-[#f6eedc] text-[#09090b] border-[#f6eedc] font-bold'
-                  : 'bg-black/60 text-white/80 border-white/15 hover:border-white/40'
-              }`}
       <div className="absolute top-5 left-0 right-0 flex items-center justify-center pointer-events-none z-30 px-4">
         <div className="pointer-events-auto inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/75 border border-white/15 backdrop-blur-md text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3] shadow-lg">
           <Globe className="w-3.5 h-3.5" />
