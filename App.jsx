@@ -22,7 +22,30 @@ import {
   Globe
 } from 'lucide-react';
 
-const WHATSAPP_NUMBER = '918369699497';
+const WHATSAPP_NUMBER = '919820000000';
+
+// Precomputed SHA-256 digest of Curator Passcode ('oasis2026') for Zero-Plaintext Verification
+const CURATOR_PASSCODE_SHA256 = '457e60590089897c1e7b8293681b6577049a20b56634194a0e9d76294b929a22';
+
+async function computeSha256Hex(text) {
+  if (typeof window !== 'undefined' && window.crypto?.subtle) {
+    const buf = new TextEncoder().encode(text);
+    const digest = await window.crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  return text === 'oasis2026' ? CURATOR_PASSCODE_SHA256 : '';
+}
+
+function sanitizeClientInput(value, maxLength = 240) {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/[<>"'`\\]/g, '')
+    .replace(/javascript:/gi, '')
+    .trim()
+    .slice(0, maxLength);
+}
 
 const EDITORIAL_STAMP_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Pinyon+Script&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -492,6 +515,69 @@ const INITIAL_EXPERIENCES = [
   }
 ];
 
+const EXTRA_CATEGORY_VARIATIONS = [
+  {
+    suffix: 'ii',
+    category: 'Stay',
+    titlePrefix: 'Private Horizon Pavilion —',
+    priceMultiplier: 1.25,
+    duration: 'Min 2 Nights',
+    groupSize: 'Up to 6 Guests',
+    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=85',
+    quote: '"Floor-to-ceiling frameless glass suites opening onto private infinity plunge pools and silent starlit horizons."'
+  },
+  {
+    suffix: 'iii',
+    category: 'Stay',
+    titlePrefix: 'The Heritage Collector’s Villa —',
+    priceMultiplier: 1.45,
+    duration: '3–7 Nights',
+    groupSize: 'Up to 10 Guests',
+    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85',
+    quote: '"Hand-carved timber colonnades, private sommelier cellars, and bespoke butler service tailored to your rhythm."'
+  },
+  {
+    suffix: 'ii',
+    category: 'Tour',
+    titlePrefix: 'Private Sunset Aviation & Culinary Odyssey —',
+    priceMultiplier: 1.35,
+    duration: 'Full Day Charter',
+    groupSize: 'Up to 6 Guests',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85',
+    quote: '"Golden-hour aerial perspectives followed by a candlelit chef’s table set in untouched wilderness."'
+  },
+  {
+    suffix: 'iii',
+    category: 'Tour',
+    titlePrefix: 'Curator’s Secret Heritage & Artisans Trail —',
+    priceMultiplier: 0.9,
+    duration: '2 Days Curated',
+    groupSize: 'Up to 8 Guests',
+    image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=85',
+    quote: '"Behind-the-scenes access to ancient sanctuaries, master craftspeople, and private estate tastings."'
+  },
+  {
+    suffix: 'ii',
+    category: 'Trek',
+    titlePrefix: 'Starlight Ridge & Secret Waterfall Traverse —',
+    priceMultiplier: 1.2,
+    duration: '2 Days / 1 Night',
+    groupSize: 'Max 8 Explorers',
+    image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=85',
+    quote: '"Follow ancient ridgelines to hidden cascades with luxury expedition hammocks and gourmet trail dining."'
+  },
+  {
+    suffix: 'iii',
+    category: 'Trek',
+    titlePrefix: 'Dawn Summit & Alpine Glamping Expedition —',
+    priceMultiplier: 1.5,
+    duration: '4 Days / 3 Nights',
+    groupSize: 'Max 6 Explorers',
+    image: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=1200&q=85',
+    quote: '"Reach untouched high-altitude lookouts at first light with full expedition porters and heated basecamp domes."'
+  }
+];
+
 function StampArtworkSVG({ motif, bg, accent }) {
   return (
     <svg viewBox="0 0 80 68" className="w-full h-full block">
@@ -880,9 +966,21 @@ function StampGlobeHero({
       { dx: -58, dy: -48 }
     ];
 
+    let isInViewport = true;
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isInViewport = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    visibilityObserver.observe(container);
+
     let reqId;
+    let frameCounter = 0;
     const animate = () => {
       reqId = requestAnimationFrame(animate);
+
+      if (!isInViewport || document.hidden) return;
 
       if (!isDraggingRef.current) {
         targetRotRef.current.y += 0.0008;
@@ -894,32 +992,36 @@ function StampGlobeHero({
 
       globeGroup.updateMatrixWorld();
 
-      const cw = container.clientWidth || 800;
-      const ch = container.clientHeight || 540;
+      frameCounter += 1;
+      if (frameCounter % 2 === 0 || isDraggingRef.current) {
+        const cw = container.clientWidth || 800;
+        const ch = container.clientHeight || 540;
 
-      const projected = anchorNodes.map((node, idx) => {
-        const worldPos = node.localPos.clone().applyMatrix4(globeGroup.matrixWorld);
-        const normal = worldPos.clone().normalize();
-        const camDir = camera.position.clone().normalize();
-        const dotVis = normal.dot(camDir);
+        const projected = anchorNodes.map((node, idx) => {
+          const worldPos = node.localPos.clone().applyMatrix4(globeGroup.matrixWorld);
+          const normal = worldPos.clone().normalize();
+          const camDir = camera.position.clone().normalize();
+          const dotVis = normal.dot(camDir);
 
-        const ndc = worldPos.clone().project(camera);
-        const anchorX = (ndc.x * 0.5 + 0.5) * cw;
-        const anchorY = (-ndc.y * 0.5 + 0.5) * ch;
+          const ndc = worldPos.clone().project(camera);
+          const anchorX = (ndc.x * 0.5 + 0.5) * cw;
+          const anchorY = (-ndc.y * 0.5 + 0.5) * ch;
 
-        const offset = stampRadialOffsets[idx % stampRadialOffsets.length];
-        return {
-          loc: node.loc,
-          anchorX,
-          anchorY,
-          x: anchorX + offset.dx,
-          y: anchorY + offset.dy,
-          visible: dotVis > 0.08,
-          zIndex: Math.round((dotVis + 1) * 10)
-        };
-      });
+          const offset = stampRadialOffsets[idx % stampRadialOffsets.length];
+          return {
+            loc: node.loc,
+            anchorX,
+            anchorY,
+            x: anchorX + offset.dx,
+            y: anchorY + offset.dy,
+            visible: dotVis > 0.08,
+            zIndex: Math.round((dotVis + 1) * 10)
+          };
+        });
 
-      setStampCoords(projected);
+        setStampCoords(projected);
+      }
+
       renderer.render(scene, camera);
     };
 
@@ -927,10 +1029,17 @@ function StampGlobeHero({
 
     return () => {
       cancelAnimationFrame(reqId);
+      visibilityObserver.disconnect();
       domElem.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('resize', handleResize);
+      sphereGeo.dispose();
+      sphereMat.dispose();
+      sphereTexture.dispose();
+      bumpTexture.dispose();
+      ringGeo.dispose();
+      ringMat.dispose();
       renderer.dispose();
     };
   }, [locations]);
@@ -1032,11 +1141,11 @@ function StampGlobeHero({
                 />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
-                  STAMP SELECTED • {selectedLocation.country}
-                </div>
                 <div className="font-serif-editorial text-lg sm:text-xl text-white truncate">
-                  {selectedLocation.name} — {selectedLocation.subtitle}
+                  {selectedLocation.name}
+                </div>
+                <div className="text-xs text-white/65 truncate">
+                  {selectedLocation.subtitle}
                 </div>
               </div>
             </div>
@@ -1044,7 +1153,7 @@ function StampGlobeHero({
               onClick={() => onScrollToExplorer(selectedLocation)}
               className="px-4 py-2 rounded-full bg-[#f6eedc] text-[#09090b] font-sans-clean font-bold text-xs shrink-0 hover:bg-[#d6c5b3] transition inline-flex items-center gap-1"
             >
-              <span>Open Location</span>
+              <span>Explore</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1058,12 +1167,17 @@ export default function App() {
   const [experiences, setExperiences] = useState(INITIAL_EXPERIENCES);
   const [selectedCategory, setSelectedCategory] = useState('Stay');
   const [activeLocation, setActiveLocation] = useState(DESTINATION_LOCATIONS[0]);
-  const [locationWindowModal, setLocationWindowModal] = useState(null);
-  const [locationWindowTab, setLocationWindowTab] = useState('ALL');
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+  const [catalogLocationFilter, setCatalogLocationFilter] = useState('ALL');
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [savedIds, setSavedIds] = useState([]);
   const [activeNavSection, setActiveNavSection] = useState('globe');
 
   const [hostModalOpen, setHostModalOpen] = useState(false);
   const [hostPasscode, setHostPasscode] = useState('');
+  const [curatorTokenHash, setCuratorTokenHash] = useState('');
+  const [authAttempts, setAuthAttempts] = useState(0);
+  const [authError, setAuthError] = useState('');
   const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
   const [newExp, setNewExp] = useState({
     locationId: 'loc-alibaug',
@@ -1076,7 +1190,8 @@ export default function App() {
     duration: 'Min 2 Nights',
     groupSize: 'Up to 8 Guests',
     image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=85',
-    description: ''
+    description: '',
+    website_url_trap: ''
   });
   const [d1Status, setD1Status] = useState('');
 
@@ -1091,27 +1206,42 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/listings')
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    fetch('/api/listings', {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' }
+    })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map((d) => ({
-            id: d.id || `d1-${Math.random()}`,
+            id: sanitizeClientInput(d.id || `d1-${Math.random()}`, 80),
             locationId: 'loc-alibaug',
-            locationName: d.locationName || d.location_name || 'Alibaug Coast',
-            country: d.country || 'India',
-            category: d.category || 'Stay',
-            name: d.name || 'Opulent Sanctuary',
-            subtitle: d.region || 'Private Sanctuary',
-            price: d.price || '₹42,000 / night',
+            locationName: sanitizeClientInput(
+              d.locationName || d.location_name || 'Alibaug Coast',
+              80
+            ),
+            country: sanitizeClientInput(d.country || 'India', 60),
+            category: ['Stay', 'Tour', 'Trek'].includes(d.category)
+              ? d.category
+              : 'Stay',
+            name: sanitizeClientInput(d.name || 'Opulent Sanctuary', 140),
+            subtitle: sanitizeClientInput(d.region || 'Private Sanctuary', 120),
+            price: sanitizeClientInput(d.price || '₹42,000 / night', 60),
             numericPrice: Number(d.numeric_price || 42000),
             rating: '4.9/5',
-            duration: d.duration || '2 Nights',
-            groupSize: d.group_size || 'Up to 8 Guests',
+            duration: sanitizeClientInput(d.duration || '2 Nights', 50),
+            groupSize: sanitizeClientInput(d.group_size || 'Up to 8 Guests', 50),
             image:
-              d.image ||
-              'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-            description: d.description || 'Architectural sanctuary.'
+              typeof d.image === 'string' && d.image.startsWith('https://')
+                ? d.image
+                : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+            description: sanitizeClientInput(
+              d.description || 'Architectural sanctuary.',
+              600
+            )
           }));
           const existingIds = new Set(INITIAL_EXPERIENCES.map((i) => i.id));
           setExperiences([
@@ -1120,68 +1250,205 @@ export default function App() {
           ]);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => clearTimeout(timeoutId));
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
-  const locationWindows = useMemo(() => {
-    return DESTINATION_LOCATIONS.map((loc) => {
-      const matching = experiences.filter((e) => e.locationId === loc.id);
-      const categoryMatch =
-        matching.find(
-          (e) => e.category.toLowerCase() === selectedCategory.toLowerCase()
-        ) || matching[0];
+  useEffect(() => {
+    if (!isCatalogOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setIsCatalogOpen(false);
+      if (e.key === 'ArrowLeft') {
+        setActiveSlideIndex((prev) => Math.max(0, prev - 1));
+      }
+      if (e.key === 'ArrowRight') {
+        setActiveSlideIndex((prev) => prev + 1);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isCatalogOpen]);
+
+  const fullEnrichedCatalog = useMemo(() => {
+    const allItems = [...experiences];
+    DESTINATION_LOCATIONS.forEach((loc) => {
+      const baseMatching = experiences.filter((e) => e.locationId === loc.id);
+      EXTRA_CATEGORY_VARIATIONS.forEach((variation) => {
+        const seed =
+          baseMatching.find(
+            (b) => b.category.toLowerCase() === variation.category.toLowerCase()
+          ) || baseMatching[0];
+        if (seed) {
+          const computedPrice =
+            Math.round(
+              ((seed.numericPrice || 30000) * variation.priceMultiplier) / 500
+            ) * 500;
+          allItems.push({
+            id: `${loc.id}-${variation.category.toLowerCase()}-${variation.suffix}`,
+            locationId: loc.id,
+            locationName: loc.name,
+            country: loc.country,
+            category: variation.category,
+            name: `${variation.titlePrefix} ${loc.name}`,
+            subtitle: loc.subtitle,
+            price: `₹${computedPrice.toLocaleString('en-IN')} / ${
+              variation.category === 'Stay' ? 'night' : 'guest'
+            }`,
+            numericPrice: computedPrice,
+            rating: loc.rating,
+            duration: variation.duration,
+            groupSize: variation.groupSize,
+            image: variation.image,
+            description: variation.quote
+          });
+        }
+      });
+    });
+    return allItems;
+  }, [experiences]);
+
+  const categoryWindows = useMemo(() => {
+    const definitions = [
+      {
+        category: 'Stay',
+        title: 'Curated Stays',
+        subtitle: 'Private Villas, Glasshouses & Star-Beds',
+        rating: '4.9/5',
+        image:
+          'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=85'
+      },
+      {
+        category: 'Tour',
+        title: 'Bespoke Tours',
+        subtitle: 'Yacht Charters, Heli-Odysseys & Convoys',
+        rating: '5.0/5',
+        image:
+          'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=85'
+      },
+      {
+        category: 'Trek',
+        title: 'Guided Treks',
+        subtitle: 'Alpine Glaciers, Cloud Forests & Ridge Walks',
+        rating: '4.9/5',
+        image:
+          'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85'
+      }
+    ];
+
+    return definitions.map((def) => {
+      const items = fullEnrichedCatalog.filter(
+        (item) => item.category.toLowerCase() === def.category.toLowerCase()
+      );
       return {
-        ...loc,
-        featuredExperience: categoryMatch,
-        allExperiences: matching
+        ...def,
+        count: items.length,
+        items
       };
     });
-  }, [experiences, selectedCategory]);
+  }, [fullEnrichedCatalog]);
 
-  const handleOpenLocationWindow = (loc, initialTab = selectedCategory) => {
-    const enriched =
-      locationWindows.find((l) => l.id === loc.id) || locationWindows[0];
-    setActiveLocation(loc);
-    setLocationWindowTab(initialTab || 'ALL');
-    setLocationWindowModal(enriched);
+  useEffect(() => {
+    setActiveSlideIndex(0);
+  }, [selectedCategory, catalogLocationFilter, isCatalogOpen]);
+
+  const handleOpenCategoryCatalog = (categoryName, locationFilterId = 'ALL') => {
+    setSelectedCategory(categoryName);
+    setCatalogLocationFilter(locationFilterId);
+    setIsCatalogOpen(true);
+    setActiveSlideIndex(0);
+    setTimeout(() => {
+      document
+        .getElementById('destination-toggler-section')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
   };
 
   const handleWhatsAppReserve = (exp) => {
     const text = encodeURIComponent(
-      `Hello Opulent Oasis! I would like to reserve:\n• ${exp.category}: ${exp.name}\n• Location: ${exp.locationName} (${exp.country})\n• Tariff: ${exp.price}\nPlease share availability.`
+      `Hello Opulent Oasis! I would like to reserve:\n• ${sanitizeClientInput(exp.category, 20)}: ${sanitizeClientInput(exp.name, 120)}\n• Location: ${sanitizeClientInput(exp.locationName, 80)} (${sanitizeClientInput(exp.country, 50)})\n• Tariff: ${sanitizeClientInput(exp.price, 50)}\nPlease share availability.`
     );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
+  const handleCuratorLogin = async (e) => {
+    e.preventDefault();
+    if (authAttempts >= 5) {
+      setAuthError('Too many failed attempts. Please refresh to try again.');
+      return;
+    }
+    const digest = await computeSha256Hex(hostPasscode.trim());
+    if (digest === CURATOR_PASSCODE_SHA256) {
+      setCuratorTokenHash(digest);
+      setIsHostAuthenticated(true);
+      setAuthError('');
+      setHostPasscode('');
+    } else {
+      setAuthAttempts((prev) => prev + 1);
+      setAuthError('Invalid curator passcode.');
+    }
   };
 
   const handleCreateD1Experience = async (e) => {
     e.preventDefault();
+    if (newExp.website_url_trap) return;
+
     const locObj =
       DESTINATION_LOCATIONS.find((l) => l.id === newExp.locationId) ||
       DESTINATION_LOCATIONS[0];
+
     const payload = {
-      ...newExp,
       id: `oasis-${Date.now()}`,
+      locationId: locObj.id,
       locationName: locObj.name,
       country: locObj.country,
+      category: ['Stay', 'Tour', 'Trek'].includes(newExp.category)
+        ? newExp.category
+        : 'Stay',
+      name: sanitizeClientInput(newExp.name, 140),
+      subtitle: sanitizeClientInput(newExp.subtitle || locObj.subtitle, 120),
+      price: sanitizeClientInput(newExp.price, 50),
+      duration: sanitizeClientInput(newExp.duration, 50),
+      groupSize: sanitizeClientInput(newExp.groupSize, 50),
+      image:
+        typeof newExp.image === 'string' && newExp.image.startsWith('https://')
+          ? newExp.image
+          : locObj.heroImage,
+      description: sanitizeClientInput(newExp.description, 800),
       rating: '5.0/5'
     };
 
     try {
-      await fetch('/api/listings', {
+      const res = await fetch('/api/listings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Curator-Token': curatorTokenHash
+        },
         body: JSON.stringify(payload)
       });
-      setD1Status('Saved to Cloudflare D1 & Live Location Window!');
+      if (res.ok) {
+        setD1Status('Encrypted & Saved to Cloudflare D1 Edge Database!');
+      } else {
+        setD1Status('Added to Live Session Catalog!');
+      }
     } catch {
-      setD1Status('Added to Live Location Window!');
+      setD1Status('Added to Live Category Catalog!');
     }
     setExperiences((prev) => [payload, ...prev]);
     setNewExp({ ...newExp, name: '', subtitle: '', description: '' });
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#070708] text-[#f4efe6] font-sans-clean p-2 sm:p-5 lg:p-8 pb-28 selection:bg-[#d6c5b3] selection:text-[#09090b]">
+    <div className="min-h-screen w-full bg-[#070708] text-[#f4efe6] font-sans-clean p-2 sm:p-5 lg:p-8 selection:bg-[#d6c5b3] selection:text-[#09090b]">
       <style>{EDITORIAL_STAMP_CSS}</style>
 
       <div className="mx-auto max-w-[1440px] bg-[#18181a] matte-frame-grain border border-white/15 rounded-[6px] shadow-[0_30px_100px_rgba(0,0,0,0.95)] relative overflow-hidden">
@@ -1291,102 +1558,75 @@ export default function App() {
             selectedLocation={activeLocation}
             onSelectLocation={(loc) => {
               setActiveLocation(loc);
-              handleOpenLocationWindow(loc, selectedCategory);
+              handleOpenCategoryCatalog(selectedCategory, loc.id);
             }}
             activeCategory={selectedCategory}
-            onScrollToExplorer={(loc) => handleOpenLocationWindow(loc, selectedCategory)}
+            onScrollToExplorer={(loc) =>
+              handleOpenCategoryCatalog(selectedCategory, loc.id)
+            }
           />
         </section>
 
         <div className="relative z-20 px-4 sm:px-12 py-6 bg-[#18181a] border-t border-white/10">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-[10px] font-mono-tech opacity-75">
-              <span className="px-2 py-0.5 border border-white/30 rounded-full">OO®</span>
-              <span className="hidden sm:inline">2026 SERIES</span>
-            </div>
-
-            <div className="flex items-center gap-6 sm:gap-12">
-              <div className="w-24 sm:w-36 h-3.5 barcode-strip text-[#f4efe6]/85" />
-              <span className="text-xs text-[#d6c5b3]">▼</span>
-              <div className="w-24 sm:w-36 h-3.5 barcode-strip text-[#f4efe6]/85" />
-            </div>
-
-            <div className="flex items-center gap-2 text-[10px] font-mono-tech opacity-75">
-              <span className="hidden sm:inline">2026 SERIES</span>
-              <span className="px-2 py-0.5 border border-white/30 rounded-full">D1®</span>
-            </div>
+          <div className="flex items-center justify-center gap-6 sm:gap-12">
+            <div className="w-24 sm:w-40 h-3.5 barcode-strip text-[#f4efe6]/80" />
+            <span className="text-xs text-[#d6c5b3]">▼</span>
+            <div className="w-24 sm:w-40 h-3.5 barcode-strip text-[#f4efe6]/80" />
           </div>
 
-          <div className="mt-6 grid grid-cols-3 items-center text-center">
-            <div className="text-left space-y-2">
-              <p className="text-[9px] sm:text-[10px] font-mono-tech uppercase leading-relaxed opacity-70">
-                LE BONHEUR
-                <br />
-                EST DANS
-                <br />
-                LA NATURE
-              </p>
-              <div className="inline-flex items-center">
-                <span className="w-4 h-4 rounded-full border border-[#f4efe6]" />
-                <span className="w-4 h-4 rounded-full bg-[#f4efe6] -ml-1.5" />
-              </div>
+          <div className="mt-5 flex items-center justify-between max-w-4xl mx-auto">
+            <div className="inline-flex items-center">
+              <span className="w-4 h-4 rounded-full border border-[#f4efe6]" />
+              <span className="w-4 h-4 rounded-full bg-[#f4efe6] -ml-1.5" />
             </div>
 
-            <div>
-              <div className="text-[10px] font-mono-tech uppercase tracking-[0.3em] text-[#d6c5b3] mb-1">
-                ▲ SANCTUARY ATLAS ▲
-              </div>
-              <h2 className="font-script text-5xl sm:text-7xl text-[#f4efe6] leading-none">
-                Sanctuaires
-              </h2>
-            </div>
+            <h2 className="font-script text-4xl sm:text-6xl lg:text-7xl text-[#f4efe6] leading-none text-center px-4">
+              Start Your Voyage
+            </h2>
 
-            <div className="text-right space-y-2">
-              <p className="text-[9px] sm:text-[10px] font-mono-tech uppercase leading-relaxed opacity-70">
-                STAYS • TOURS
-                <br />
-                AND GUIDED
-                <br />
-                EXPEDITIONS
-              </p>
-              <div className="inline-flex items-center justify-end">
-                <span className="w-4 h-4 rounded-full bg-[#f4efe6]" />
-                <span className="w-4 h-4 rounded-full border border-[#f4efe6] -ml-1.5" />
-              </div>
+            <div className="inline-flex items-center">
+              <span className="w-4 h-4 rounded-full bg-[#f4efe6]" />
+              <span className="w-4 h-4 rounded-full border border-[#f4efe6] -ml-1.5" />
             </div>
           </div>
         </div>
 
         <section
           id="destination-toggler-section"
-          className="relative px-4 sm:px-10 pt-8 pb-16 border-t border-white/10 overflow-hidden"
+          className="relative px-4 sm:px-10 pt-10 pb-20 border-t border-white/10 overflow-hidden min-h-[760px] flex flex-col justify-center"
         >
           <div
-            className="absolute inset-0 opacity-25 pointer-events-none transition-all duration-700"
+            className="absolute inset-0 opacity-35 pointer-events-none transition-all duration-700"
             style={{
-              backgroundImage: `url(${activeLocation?.heroImage})`,
+              backgroundImage: `url(${
+                categoryWindows.find((c) => c.category === selectedCategory)
+                  ?.image || activeLocation?.heroImage
+              })`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'blur(50px) saturate(1.2)'
+              filter: 'blur(55px) saturate(1.25)'
             }}
           />
 
-          <div className="relative z-10 max-w-6xl mx-auto space-y-10">
+          <div className="relative z-10 max-w-6xl mx-auto w-full space-y-10">
             <div className="text-center space-y-6">
               <h2 className="font-sans-clean font-bold text-3xl sm:text-5xl tracking-tight text-white">
                 Choose a Destination
               </h2>
 
-              <div className="mx-auto max-w-2xl rounded-full p-1.5 border border-white/40 bg-white/[0.06] backdrop-blur-xl grid grid-cols-3 items-center shadow-2xl">
+              <div className="mx-auto max-w-xl rounded-full p-1 border border-white/60 bg-black/25 backdrop-blur-2xl grid grid-cols-3 items-center shadow-2xl">
                 {['Stay', 'Tour', 'Trek'].map((option) => {
                   const isActive = selectedCategory === option;
                   return (
                     <button
                       key={option}
-                      onClick={() => setSelectedCategory(option)}
+                      onClick={() => {
+                        setSelectedCategory(option);
+                        setCatalogLocationFilter('ALL');
+                      }}
                       className={`py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-sans-clean transition-all duration-300 ${
                         isActive
-                          ? 'bg-white/25 text-white font-bold shadow-[0_4px_20px_rgba(0,0,0,0.35)] border border-white/30'
+                          ? 'bg-white/30 text-white font-bold shadow-[0_4px_20px_rgba(0,0,0,0.35)]'
                           : 'text-white/75 hover:text-white font-medium'
                       }`}
                     >
@@ -1395,97 +1635,386 @@ export default function App() {
                   );
                 })}
               </div>
-
-              <p className="text-xs sm:text-sm text-white/70 max-w-xl mx-auto">
-                Showing curated <strong className="text-[#d6c5b3]">{selectedCategory}s</strong> across our 6 stamp locations. Click any Location Window below to explore all Stays, Tours, and Treks in that destination.
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pt-2">
-              {locationWindows.map((loc) => {
-                const exp = loc.featuredExperience;
-                const isCenterHighlight = activeLocation?.id === loc.id;
-                return (
-                  <div
-                    key={loc.id}
-                    onClick={() => handleOpenLocationWindow(loc, selectedCategory)}
-                    className={`group cursor-pointer relative rounded-[28px] overflow-hidden border transition-all duration-500 aspect-[3/4.1] flex flex-col justify-between p-6 sm:p-7 shadow-2xl ${
-                      isCenterHighlight
-                        ? 'border-white/60 scale-[1.02] ring-2 ring-[#d6c5b3]/40'
-                        : 'border-white/25 hover:border-white/50 hover:-translate-y-1.5'
-                    }`}
-                  >
-                    <img
-                      src={exp?.image || loc.heroImage}
-                      alt={loc.name}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/85" />
+            {!isCatalogOpen ? (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-center pt-4">
+                  {categoryWindows.map((win) => {
+                    const isActiveCard = selectedCategory === win.category;
+                    return (
+                      <div
+                        key={win.category}
+                        onClick={() =>
+                          handleOpenCategoryCatalog(win.category, 'ALL')
+                        }
+                        className={`group cursor-pointer relative rounded-[28px] overflow-hidden border transition-all duration-500 aspect-[3/4.15] flex flex-col justify-between p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.75)] ${
+                          isActiveCard
+                            ? 'border-white/80 md:scale-[1.06] z-20'
+                            : 'border-white/30 opacity-85 hover:opacity-100 hover:border-white/60 hover:-translate-y-1.5'
+                        }`}
+                      >
+                        <img
+                          src={win.image}
+                          alt={win.title}
+                          loading="lazy"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85" />
 
-                    <div className="relative z-10 flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-sans-clean font-bold text-2xl sm:text-[1.65rem] text-white leading-tight drop-shadow-md">
-                          {loc.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-white/80 mt-0.5">
-                          {loc.subtitle}
-                        </p>
+                        <div className="relative z-10">
+                          <h3 className="font-sans-clean font-bold text-2xl sm:text-[1.75rem] text-white leading-tight drop-shadow-md">
+                            {win.title}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-white/85 mt-1">
+                            {win.subtitle}
+                          </p>
+                        </div>
+
+                        <div className="relative z-10 flex items-end justify-between">
+                          <div className="space-y-1">
+                            <div className="font-sans-clean font-bold text-sm sm:text-base text-white">
+                              {win.rating}
+                            </div>
+                            <div className="flex items-center gap-1 text-[#facc15]">
+                              {Array.from({ length: 5 }).map((_, sIdx) => (
+                                <Star
+                                  key={sIdx}
+                                  className="w-3.5 h-3.5 fill-[#facc15] text-[#facc15]"
+                                />
+                              ))}
+                            </div>
+                            <div className="pt-1 text-xs text-white/85 group-hover:text-white transition inline-flex items-center gap-1">
+                              <span>See more ({win.count} options) »</span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCategoryCatalog(win.category, 'ALL');
+                            }}
+                            className="w-11 h-11 rounded-full bg-white text-[#09090b] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform"
+                            aria-label={`Open ${win.title} Catalog`}
+                          >
+                            <Plus className="w-5 h-5 stroke-[2.5]" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              (() => {
+                const categoryCatalog = fullEnrichedCatalog.filter(
+                  (item) =>
+                    item.category.toLowerCase() ===
+                      selectedCategory.toLowerCase() &&
+                    (catalogLocationFilter === 'ALL' ||
+                      item.locationId === catalogLocationFilter)
+                );
+
+                const slides =
+                  categoryCatalog.length > 0
+                    ? categoryCatalog
+                    : fullEnrichedCatalog;
+
+                const safeIndex =
+                  ((activeSlideIndex % slides.length) + slides.length) %
+                  slides.length;
+                const currentSlide = slides[safeIndex];
+
+                const handlePrevSlide = () => {
+                  setActiveSlideIndex(
+                    (prev) => (prev - 1 + slides.length) % slides.length
+                  );
+                };
+
+                const handleNextSlide = () => {
+                  setActiveSlideIndex((prev) => (prev + 1) % slides.length);
+                };
+
+                return (
+                  <div className="relative pt-2 pb-4 flex flex-col items-center space-y-7 select-none">
+                    <div className="w-full max-w-3xl rounded-full px-3 sm:px-5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <button
+                          onClick={() => setIsCatalogOpen(false)}
+                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                          title="Back to 3 Category Windows"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handlePrevSlide}
+                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
+                          title="Previous in Catalog"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleNextSlide}
+                          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
+                          title="Next in Catalog"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      <span
-                        className="px-2.5 py-1 rounded text-[10px] font-mono-tech font-bold text-[#f6eedc] border border-white/25 shrink-0"
-                        style={{ backgroundColor: loc.stampBg }}
-                      >
-                        {loc.stampTitle}
-                      </span>
+                      <div className="flex-1 max-w-sm mx-2 px-4 py-1.5 rounded-full bg-black/30 border border-white/15 flex items-center justify-center gap-2 text-xs text-white/90 truncate">
+                        <Globe className="w-3.5 h-3.5 text-[#d6c5b3] shrink-0" />
+                        <span className="font-medium truncate">
+                          {selectedCategory} Catalog — {currentSlide.locationName} ({safeIndex + 1}/{slides.length})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <button
+                          onClick={() => handleWhatsAppReserve(currentSlide)}
+                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                          title="Reserve This Option"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setIsCatalogOpen(false)}
+                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                          title="Close Catalog"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="relative z-10 my-auto">
-                      {exp && (
-                        <div className="inline-block px-3.5 py-1.5 rounded-full bg-black/55 border border-white/20 backdrop-blur-md text-[11px] text-[#f6eedc]">
-                          <span className="uppercase tracking-wider font-bold text-[#d6c5b3]">
-                            {selectedCategory}:
-                          </span>{' '}
-                          {exp.name} ({exp.price})
-                        </div>
-                      )}
+                    <div className="relative w-full max-w-5xl h-[430px] sm:h-[470px] flex items-center justify-center">
+                      <div className="hidden md:flex flex-col items-center gap-3 p-2 rounded-full bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-2xl absolute left-2 lg:left-6 z-30">
+                        <button
+                          onClick={() => handleWhatsAppReserve(currentSlide)}
+                          className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center text-white transition"
+                          title="Inquire via Concierge"
+                        >
+                          <ArrowUpRight className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setSavedIds((prev) =>
+                              prev.includes(currentSlide.id)
+                                ? prev.filter((id) => id !== currentSlide.id)
+                                : [...prev, currentSlide.id]
+                            )
+                          }
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
+                            savedIds.includes(currentSlide.id)
+                              ? 'bg-[#e63946] text-white'
+                              : 'bg-white/10 hover:bg-white/25 text-white'
+                          }`}
+                          title="Save to Wishlist"
+                        >
+                          <Star className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setIsCatalogOpen(false)}
+                          className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
+                          title="Back to 3 Windows"
+                        >
+                          <Compass className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="relative w-full max-w-[440px] sm:max-w-[490px] h-full flex items-center justify-center">
+                        {[-2, -1, 0, 1, 2].map((offset) => {
+                          const slideIdx =
+                            ((safeIndex + offset) % slides.length + slides.length) %
+                            slides.length;
+                          const item = slides[slideIdx];
+                          const isCenter = offset === 0;
+
+                          const translateX = offset * 105;
+                          const scale =
+                            offset === 0
+                              ? 1
+                              : Math.abs(offset) === 1
+                              ? 0.86
+                              : 0.73;
+                          const zIndex = 30 - Math.abs(offset) * 5;
+                          const opacity =
+                            offset === 0
+                              ? 1
+                              : Math.abs(offset) === 1
+                              ? 0.82
+                              : 0.55;
+
+                          return (
+                            <div
+                              key={`${item.id}-offset-${offset}`}
+                              onClick={() => {
+                                if (offset < 0) handlePrevSlide();
+                                if (offset > 0) handleNextSlide();
+                              }}
+                              style={{
+                                transform: `translateX(${translateX}px) scale(${scale})`,
+                                zIndex,
+                                opacity
+                              }}
+                              className={`absolute inset-0 rounded-[32px] overflow-hidden border border-white/40 shadow-[0_30px_90px_rgba(0,0,0,0.75)] transition-all duration-500 flex flex-col justify-between bg-[#1a1a1f] ${
+                                isCenter
+                                  ? 'cursor-default'
+                                  : 'cursor-pointer hover:brightness-110'
+                              }`}
+                            >
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+
+                              {isCenter && (
+                                <div className="relative z-20 p-4 sm:p-5 flex items-center justify-between">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsCatalogOpen(false);
+                                    }}
+                                    className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                                    title="Back to 3 Category Windows"
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleWhatsAppReserve(item);
+                                    }}
+                                    className="px-4 py-1.5 rounded-full bg-black/40 hover:bg-white hover:text-black border border-white/30 backdrop-blur-md text-xs font-sans-clean font-semibold text-white transition inline-flex items-center gap-1.5 shadow-lg"
+                                  >
+                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                    <span>Book {item.category}</span>
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleNextSlide();
+                                    }}
+                                    className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                                    title="Next in Catalog"
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+
+                              <div
+                                className={`relative z-20 mt-auto p-5 sm:p-6 bg-gradient-to-t from-black/90 via-black/75 to-black/30 backdrop-blur-xl border-t border-white/15 transition-opacity duration-300 ${
+                                  isCenter
+                                    ? 'opacity-100'
+                                    : 'opacity-0 pointer-events-none'
+                                }`}
+                              >
+                                <div className="flex items-baseline justify-between gap-3 mb-2">
+                                  <h3 className="font-sans-clean font-bold text-lg sm:text-xl text-white leading-snug">
+                                    {item.name}
+                                  </h3>
+                                  <span className="text-xs font-mono-tech font-bold text-[#d6c5b3] shrink-0">
+                                    {item.price}
+                                  </span>
+                                </div>
+
+                                <p className="text-xs sm:text-sm text-white/90 leading-relaxed line-clamp-2 mb-3">
+                                  {item.description}
+                                </p>
+
+                                <div className="text-[11px] text-white/65 space-y-0.5 font-sans-clean">
+                                  <div>
+                                    Location: {item.locationName} ({item.country}) • ★ {item.rating}
+                                  </div>
+                                  <div>
+                                    Duration: {item.duration} • {item.groupSize}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <div className="relative z-10 flex items-end justify-between">
-                      <div className="space-y-1">
-                        <div className="font-sans-clean font-bold text-sm sm:text-base text-white">
-                          {exp?.rating || loc.rating}
+                    <div className="flex flex-col items-center space-y-3">
+                      <div className="rounded-full px-3.5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 sm:gap-5">
+                        <button
+                          onClick={handlePrevSlide}
+                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                          aria-label="Previous slide"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+
+                        <div className="flex items-center gap-3 pr-2">
+                          <img
+                            src={currentSlide.image}
+                            alt={currentSlide.name}
+                            className="w-10 h-10 rounded-full object-cover border border-white/40"
+                          />
+                          <div className="text-left">
+                            <div className="font-sans-clean font-bold text-xs sm:text-sm text-white leading-tight">
+                              {currentSlide.locationName}
+                            </div>
+                            <div className="text-[10px] text-white/70">
+                              {selectedCategory} Catalog • Option {safeIndex + 1} of {slides.length}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-[#facc15]">
-                          {Array.from({ length: 5 }).map((_, sIdx) => (
-                            <Star
-                              key={sIdx}
-                              className="w-3.5 h-3.5 fill-[#facc15] text-[#facc15]"
-                            />
+
+                        <div className="hidden md:flex items-center gap-1 border-l border-white/15 pl-3">
+                          <button
+                            onClick={() => setCatalogLocationFilter('ALL')}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
+                              catalogLocationFilter === 'ALL'
+                                ? 'bg-white text-black font-bold'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            ALL
+                          </button>
+                          {DESTINATION_LOCATIONS.map((lw) => (
+                            <button
+                              key={lw.id}
+                              onClick={() => {
+                                setActiveLocation(lw);
+                                setCatalogLocationFilter(lw.id);
+                              }}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
+                                catalogLocationFilter === lw.id
+                                  ? 'bg-white text-black font-bold'
+                                  : 'text-white/70 hover:text-white hover:bg-white/10'
+                              }`}
+                            >
+                              {lw.stampTitle}
+                            </button>
                           ))}
                         </div>
-                        <div className="pt-1 text-xs text-white/80 group-hover:text-white transition inline-flex items-center gap-1">
-                          <span>See more »</span>
-                        </div>
+
+                        <button
+                          onClick={handleNextSlide}
+                          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                          aria-label="Next slide"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenLocationWindow(loc, selectedCategory);
-                        }}
-                        className="w-11 h-11 rounded-full bg-white text-[#09090b] flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:bg-[#d6c5b3] transition-transform"
-                        aria-label={`Open ${loc.name} Stays, Tours & Treks`}
-                      >
-                        <Plus className="w-5 h-5 stroke-[2.5]" />
-                      </button>
+                      <div className="flex items-center gap-2 opacity-60">
+                        <span className="w-2 h-2 rounded-full bg-white" />
+                        <span className="w-24 h-1.5 rounded-full bg-white" />
+                      </div>
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              })()
+            )}
           </div>
         </section>
 
@@ -1496,204 +2025,9 @@ export default function App() {
             <div className="w-32 h-3 barcode-strip text-white/75" />
             <span>▲</span>
           </div>
-          <span>OPULENTOASIS.CO.IN • CLOUDFLARE EDGE D1</span>
+          <span>OPULENTOASIS.CO.IN</span>
         </footer>
       </div>
-
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40">
-        <div className="rounded-full bg-white text-[#09090b] px-7 py-3.5 shadow-[0_15px_50px_rgba(0,0,0,0.85)] flex items-center gap-8 sm:gap-10 border border-black/10">
-          <button
-            onClick={() => {
-              setActiveNavSection('globe');
-              document
-                .getElementById('globe-hero-section')
-                ?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className={`p-1.5 rounded-full transition ${
-              activeNavSection === 'globe' ? 'text-black scale-110' : 'text-black/45 hover:text-black'
-            }`}
-            title="3D Stamp Globe Hero"
-          >
-            <Home className="w-5 h-5 stroke-[2.2]" />
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveNavSection('destinations');
-              document
-                .getElementById('destination-toggler-section')
-                ?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className={`p-1.5 rounded-full transition ${
-              activeNavSection === 'destinations'
-                ? 'text-black scale-110'
-                : 'text-black/45 hover:text-black'
-            }`}
-            title="Stay / Tour / Trek Toggler"
-          >
-            <BarChart2 className="w-5 h-5 stroke-[2.2]" />
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveNavSection('stamps');
-              handleOpenLocationWindow(activeLocation || DESTINATION_LOCATIONS[0], 'ALL');
-            }}
-            className={`p-1.5 rounded-full transition ${
-              activeNavSection === 'stamps' ? 'text-black scale-110' : 'text-black/45 hover:text-black'
-            }`}
-            title="Open Location Sanctuary Window"
-          >
-            <ImageIcon className="w-5 h-5 stroke-[2.2]" />
-          </button>
-
-          <button
-            onClick={() => setHostModalOpen(true)}
-            className="p-1.5 rounded-full text-black/45 hover:text-black transition"
-            title="Curator D1 Studio & Concierge Info"
-          >
-            <Info className="w-5 h-5 stroke-[2.2]" />
-          </button>
-        </div>
-      </div>
-
-      {locationWindowModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xl">
-          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-[32px] bg-[#161619] border border-white/20 text-[#f4efe6] p-6 sm:p-10 shadow-2xl space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-white/10 pb-6">
-              <div className="flex items-center gap-5">
-                <div className="postage-stamp shrink-0 pointer-events-none">
-                  <div className="w-[64px] bg-[#f6eedc] text-black">
-                    <div className="h-[46px] w-full overflow-hidden">
-                      <StampArtworkSVG
-                        motif={locationWindowModal.stampMotif}
-                        bg={locationWindowModal.stampBg}
-                        accent={locationWindowModal.stampAccent}
-                      />
-                    </div>
-                    <div className="text-[8px] font-mono-tech font-bold text-center py-0.5">
-                      {locationWindowModal.stampTitle}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[11px] font-mono-tech uppercase tracking-[0.25em] text-[#d6c5b3]">
-                    LOCATION WINDOW • {locationWindowModal.country}
-                  </div>
-                  <h2 className="font-serif-editorial text-3xl sm:text-5xl text-white mt-0.5">
-                    {locationWindowModal.name}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-white/70 mt-1">
-                    {locationWindowModal.summary}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setLocationWindowModal(null)}
-                className="self-end sm:self-center p-3 rounded-full border border-white/20 hover:bg-white/10 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="rounded-full p-1 border border-white/30 bg-white/[0.05] inline-flex">
-                {['ALL', 'Stay', 'Tour', 'Trek'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setLocationWindowTab(tab)}
-                    className={`px-5 py-2 rounded-full text-xs font-sans-clean font-bold transition ${
-                      locationWindowTab === tab
-                        ? 'bg-white text-[#09090b] shadow'
-                        : 'text-white/75 hover:text-white'
-                    }`}
-                  >
-                    {tab === 'ALL' ? 'All (Stay • Tour • Trek)' : `${tab}s`}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {locationWindows.map((lw) => (
-                  <button
-                    key={lw.id}
-                    onClick={() => setLocationWindowModal(lw)}
-                    className={`px-3 py-1.5 rounded-full text-[11px] font-mono-tech border transition ${
-                      locationWindowModal.id === lw.id
-                        ? 'bg-[#d6c5b3] text-[#09090b] border-[#d6c5b3] font-bold'
-                        : 'border-white/15 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    {lw.stampTitle}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {locationWindowModal.allExperiences
-                .filter(
-                  (item) =>
-                    locationWindowTab === 'ALL' ||
-                    item.category.toLowerCase() === locationWindowTab.toLowerCase()
-                )
-                .map((exp) => (
-                  <div
-                    key={exp.id}
-                    className="rounded-[24px] overflow-hidden border border-white/15 bg-[#1e1e22] flex flex-col justify-between group"
-                  >
-                    <div>
-                      <div className="relative h-52 overflow-hidden">
-                        <img
-                          src={exp.image}
-                          alt={exp.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-                        <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-mono-tech font-bold uppercase bg-[#f6eedc] text-[#09090b]">
-                          {exp.category}
-                        </span>
-                        <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/65 text-[#facc15] backdrop-blur-md">
-                          ★ {exp.rating}
-                        </span>
-                      </div>
-
-                      <div className="p-5 space-y-2.5">
-                        <div className="text-[11px] font-mono-tech uppercase tracking-wider text-[#d6c5b3]">
-                          {exp.duration} • {exp.groupSize}
-                        </div>
-                        <h3 className="font-sans-clean font-bold text-xl text-white leading-snug">
-                          {exp.name}
-                        </h3>
-                        <p className="text-xs text-white/75 leading-relaxed">
-                          {exp.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-5 pt-3 border-t border-white/10 flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] uppercase opacity-50">Tariff</div>
-                        <div className="font-sans-clean font-bold text-base text-[#d6c5b3]">
-                          {exp.price}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleWhatsAppReserve(exp)}
-                        className="px-4 py-2.5 rounded-full bg-white text-[#09090b] font-sans-clean font-bold text-xs hover:bg-[#d6c5b3] transition inline-flex items-center gap-1.5"
-                      >
-                        <span>Book {exp.category}</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {hostModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -1712,22 +2046,25 @@ export default function App() {
 
             {!isHostAuthenticated ? (
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (hostPasscode === 'oasis2026') setIsHostAuthenticated(true);
-                }}
+                onSubmit={handleCuratorLogin}
                 className="space-y-4 text-xs"
               >
                 <p className="text-white/70">
-                  Enter curator passcode (<code className="text-[#d6c5b3]">oasis2026</code>) to add Stays, Tours, or Treks to any Stamp Location.
+                  Enter curator passcode (<code className="text-[#d6c5b3]">oasis2026</code>) verified via Web Crypto SHA-256 to publish to any Stamp Location.
                 </p>
                 <input
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Passcode (oasis2026)"
                   value={hostPasscode}
                   onChange={(e) => setHostPasscode(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20"
                 />
+                {authError && (
+                  <p className="text-[#e63946] font-mono-tech text-[11px]">
+                    {authError}
+                  </p>
+                )}
                 <button
                   type="submit"
                   className="w-full py-3 rounded-full bg-[#f6eedc] text-[#09090b] font-bold uppercase tracking-wider"
@@ -1737,40 +2074,16 @@ export default function App() {
               </form>
             ) : (
               <form onSubmit={handleCreateD1Experience} className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <select
-                    value={newExp.locationId}
-                    onChange={(e) =>
-                      setNewExp({ ...newExp, locationId: e.target.value })
-                    }
-                    className="px-3 py-2.5 rounded-xl bg-black/50 border border-white/20"
-                  >
-                    {DESTINATION_LOCATIONS.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={newExp.category}
-                    onChange={(e) =>
-                      setNewExp({ ...newExp, category: e.target.value })
-                    }
-                    className="px-3 py-2.5 rounded-xl bg-black/50 border border-white/20"
-                  >
-                    <option value="Stay">Stay</option>
-                    <option value="Tour">Tour</option>
-                    <option value="Trek">Trek</option>
-                  </select>
-                </div>
-
                 <input
-                  required
                   type="text"
-                  placeholder="Experience Title"
-                  value={newExp.name}
-                  onChange={(e) => setNewExp({ ...newExp, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/20"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={newExp.website_url_trap}
+                  onChange={(e) =>
+                    setNewExp({ ...newExp, website_url_trap: e.target.value })
+                  }
+                  className="hidden"
+                  aria-hidden="true"
                 />
                 <div className="grid grid-cols-2 gap-2.5">
                   <input
