@@ -22,8 +22,189 @@ import {
   Clock,
   Sparkles,
   Sun,
-  Copy
+  Copy,
+  BarChart3,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
+
+// ============================================================================
+// OMNICHANNEL ATTRIBUTION, META PIXEL DEDUPLICATION & EDGE ANALYTICS ENGINE
+// ============================================================================
+function getCookieValue(name) {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[2]) : '';
+}
+
+function getOrCreateSessionId() {
+  try {
+    let sid = sessionStorage.getItem('oasis_session_id');
+    if (!sid) {
+      sid = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      sessionStorage.setItem('oasis_session_id', sid);
+    }
+    return sid;
+  } catch {
+    return `sess-${Date.now()}`;
+  }
+}
+
+function getAttributionContext() {
+  if (typeof window === 'undefined') {
+    return { utm_source: '', utm_medium: '', utm_campaign: '', fbp: '', fbc: '' };
+  }
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const cached = JSON.parse(sessionStorage.getItem('oasis_utm_ctx') || '{}');
+    const utm_source = params.get('utm_source') || cached.utm_source || '';
+    const utm_medium = params.get('utm_medium') || cached.utm_medium || '';
+    const utm_campaign = params.get('utm_campaign') || cached.utm_campaign || '';
+    const fbclid = params.get('fbclid') || '';
+    const fbp = getCookieValue('_fbp');
+    const fbc =
+      getCookieValue('_fbc') || (fbclid ? `fb.1.${Date.now()}.${fbclid}` : cached.fbc || '');
+
+    const ctx = { utm_source, utm_medium, utm_campaign, fbp, fbc };
+    sessionStorage.setItem('oasis_utm_ctx', JSON.stringify(ctx));
+    return ctx;
+  } catch {
+    return { utm_source: '', utm_medium: '', utm_campaign: '', fbp: '', fbc: '' };
+  }
+}
+
+function getDeviceType() {
+  if (typeof window === 'undefined') return 'desktop';
+  const w = window.innerWidth;
+  if (w < 640) return 'mobile';
+  if (w < 1024) return 'tablet';
+  return 'desktop';
+}
+
+function generateMetaEventId(prefix = 'evt') {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function trackOmnichannelEvent({
+  eventName,
+  category = '',
+  destination = '',
+  listingId = '',
+  valueInr = 0,
+  metaEventId = ''
+}) {
+  const ctx = getAttributionContext();
+  const sessionId = getOrCreateSessionId();
+  const evtId = metaEventId || generateMetaEventId(eventName);
+
+  // 1. First-Party Cloudflare D1 Edge Analytics (Ad-Blocker Proof)
+  try {
+    fetch('/api/analytics', {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        eventName,
+        category,
+        destination,
+        listingId,
+        valueInr: Number(valueInr || 0),
+        utm_source: ctx.utm_source,
+        utm_campaign: ctx.utm_campaign,
+        deviceType: getDeviceType()
+      })
+    }).catch(() => {});
+  } catch {
+    // Non-blocking telemetry
+  }
+
+  // 2. Meta Pixel Browser Event (Paired with CAPI eventID for deduplication)
+  if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+    const metaMap = {
+      globe_stamp_click: 'ViewContent',
+      detail_view: 'ViewContent',
+      estimator_update: 'InitiateCheckout',
+      wishlist_save: 'AddToWishlist',
+      whatsapp_handoff: 'Contact',
+      lead_submitted: 'Lead'
+    };
+    const fbEvent = metaMap[eventName];
+    if (fbEvent) {
+      window.fbq(
+        'track',
+        fbEvent,
+        {
+          content_name: destination || 'Opulent Oasis',
+          content_category: category || 'Stay',
+          content_ids: listingId ? [listingId] : undefined,
+          value: Number(valueInr || 0),
+          currency: 'INR'
+        },
+        { eventID: evtId }
+      );
+    }
+  }
+
+  // 3. Google Analytics 4 (GA4) Event
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    const gaMap = {
+      page_view: 'page_view',
+      globe_stamp_click: 'select_item',
+      detail_view: 'view_item',
+      estimator_update: 'begin_checkout',
+      wishlist_save: 'add_to_wishlist',
+      whatsapp_handoff: 'contact',
+      lead_submitted: 'generate_lead'
+    };
+    const gaEvent = gaMap[eventName] || eventName;
+    window.gtag('event', gaEvent, {
+      event_category: category || 'Voyage',
+      item_name: destination || 'Opulent Oasis',
+      item_id: listingId || undefined,
+      value: Number(valueInr || 0),
+      currency: 'INR'
+    });
+  }
+
+  return evtId;
+}
+
+async function dispatchOmnichannelLead(lead) {
+  const ctx = getAttributionContext();
+  const metaEventId = generateMetaEventId('lead');
+
+  trackOmnichannelEvent({
+    eventName: 'lead_submitted',
+    category: lead.category,
+    destination: lead.destination,
+    listingId: lead.listingId || '',
+    valueInr: lead.estimatedValueInr || 0,
+    metaEventId
+  });
+
+  try {
+    const res = await fetch('/api/inquiries', {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...lead,
+        metaEventId,
+        utm_source: ctx.utm_source,
+        utm_medium: ctx.utm_medium,
+        utm_campaign: ctx.utm_campaign,
+        fbp: ctx.fbp,
+        fbc: ctx.fbc,
+        pageUrl: typeof window !== 'undefined' ? window.location.href : 'https://opulentoasis.co.in/'
+      })
+    });
+    if (res.ok) return await res.json();
+  } catch {
+    // Graceful fallback if offline / local preview
+  }
+  return { success: false, metaEventId };
+}
 
 // ============================================================================
 // EDITABLE BUSINESS & MANDATORY PAGES CONFIGURATION
@@ -143,7 +324,7 @@ const EDITORIAL_STAMP_CSS = `
     padding: 5px;
     border-radius: 2px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(214, 197, 179, 0.3);
-    background-image:
+    background-image: 
       radial-gradient(circle at 0 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 100% 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 50% 0, transparent 3.5px, #f6eedc 4px),
@@ -218,6 +399,7 @@ const EDITORIAL_STAMP_CSS = `
     }
   }
 
+  /* Awwwards Accessibility: Crisp Keyboard Focus Indicators */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
@@ -1485,8 +1667,13 @@ export default function App() {
   const [tripEstimator, setTripEstimator] = useState({
     checkIn: '',
     nights: 2,
-    guests: 2
+    guests: 2,
+    guestName: '',
+    guestPhone: ''
   });
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [crmInquiries, setCrmInquiries] = useState([]);
+  const [crmLoading, setCrmLoading] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 1280
   );
@@ -1538,6 +1725,15 @@ export default function App() {
     setSavedIds((prev) =>
       exists ? prev.filter((id) => id !== item.id) : [...prev, item.id]
     );
+    if (!exists) {
+      trackOmnichannelEvent({
+        eventName: 'wishlist_save',
+        category: item.category,
+        destination: item.locationName,
+        listingId: item.id,
+        valueInr: item.numericPrice || 35000
+      });
+    }
     showToast(
       exists
         ? `Removed "${item.name}" from Saved Voyages`
@@ -1549,6 +1745,13 @@ export default function App() {
     setDetailExperience(item);
     setDetailGalleryIdx(0);
     setDetailTab('overview');
+    trackOmnichannelEvent({
+      eventName: 'detail_view',
+      category: item.category,
+      destination: item.locationName,
+      listingId: item.id,
+      valueInr: item.numericPrice || 35000
+    });
   };
 
   const handleNavigatePage = (pageKey) => {
@@ -1560,9 +1763,27 @@ export default function App() {
     e.preventDefault();
     if (contactForm.website_trap) return;
     setContactSubmitted(true);
+
+    const cleanName = sanitizeClientInput(contactForm.name, 80);
+    const cleanEmail = sanitizeClientInput(contactForm.email, 100);
+    const cleanPhoneInput = sanitizeClientInput(contactForm.phone, 40);
+    const cleanMsg = sanitizeClientInput(contactForm.message, 400);
+
+    dispatchOmnichannelLead({
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhoneInput,
+      category: contactForm.category,
+      destination: contactForm.destination,
+      estimatedValueInr: 45000,
+      currency,
+      notes: cleanMsg,
+      sourceChannel: 'website'
+    });
+
     const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
     const text = encodeURIComponent(
-      `Hello ${siteContent.businessName} Concierge!\nName: ${sanitizeClientInput(contactForm.name, 80)}\nEmail: ${sanitizeClientInput(contactForm.email, 100)}\nPhone: ${sanitizeClientInput(contactForm.phone, 40)}\nInterest: ${contactForm.category} — ${contactForm.destination}\nMessage: ${sanitizeClientInput(contactForm.message, 400)}`
+      `Hello ${siteContent.businessName} Concierge!\nName: ${cleanName}\nEmail: ${cleanEmail}\nPhone: ${cleanPhoneInput}\nInterest: ${contactForm.category} — ${contactForm.destination}\nMessage: ${cleanMsg}`
     );
     setTimeout(() => {
       window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
@@ -1598,7 +1819,61 @@ export default function App() {
       script.async = true;
       document.head.appendChild(script);
     }
+    trackOmnichannelEvent({ eventName: 'page_view', destination: 'Home Atlas' });
   }, []);
+
+  const loadCuratorOmnichannelData = async (tokenOverride = '') => {
+    const token = tokenOverride || curatorTokenHash;
+    if (!token) return;
+    setCrmLoading(true);
+    try {
+      const [anaRes, inqRes] = await Promise.all([
+        fetch('/api/analytics', { headers: { 'X-Curator-Token': token } }),
+        fetch('/api/inquiries', { headers: { 'X-Curator-Token': token } })
+      ]);
+      if (anaRes.ok) {
+        setAnalyticsData(await anaRes.json());
+      }
+      if (inqRes.ok) {
+        const json = await inqRes.json();
+        setCrmInquiries(Array.isArray(json.inquiries) ? json.inquiries : []);
+      }
+    } catch {
+      // Offline / preview mode fallback
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
+  const handleUpdateInquiryStatus = async (inquiryId, newStatus) => {
+    setCrmInquiries((prev) =>
+      prev.map((row) => (row.id === inquiryId ? { ...row, status: newStatus } : row))
+    );
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Curator-Token': curatorTokenHash
+        },
+        body: JSON.stringify({ id: inquiryId, status: newStatus })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (newStatus === 'Confirmed') {
+          showToast(
+            result.purchaseCapiTriggered
+              ? 'Confirmed! Meta CAPI Purchase & Interakt drip triggered.'
+              : 'Booking Confirmed & synced to D1 CRM!'
+          );
+        } else {
+          showToast(`Lead updated to ${newStatus}`);
+        }
+      }
+    } catch {
+      showToast(`Status updated locally to ${newStatus}`);
+    }
+  };
 
   // Sync live Cloudflare D1 listings
   useEffect(() => {
@@ -1776,6 +2051,12 @@ export default function App() {
     setCatalogLocationFilter(locationFilterId);
     setIsCatalogOpen(true);
     setActiveSlideIndex(0);
+    const matchedLoc = DESTINATION_LOCATIONS.find((l) => l.id === locationFilterId);
+    trackOmnichannelEvent({
+      eventName: 'catalog_open',
+      category: categoryName,
+      destination: matchedLoc ? matchedLoc.name : 'All Destinations'
+    });
     setTimeout(() => {
       document
         .getElementById('destination-toggler-section')
@@ -1784,6 +2065,13 @@ export default function App() {
   };
 
   const handleWhatsAppReserve = (exp) => {
+    trackOmnichannelEvent({
+      eventName: 'whatsapp_handoff',
+      category: exp.category,
+      destination: exp.locationName,
+      listingId: exp.id,
+      valueInr: exp.numericPrice || 35000
+    });
     const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
     const text = encodeURIComponent(
       `Hello ${siteContent.businessName}! I would like to reserve:\n• ${sanitizeClientInput(exp.category, 20)}: ${sanitizeClientInput(exp.name, 120)}\n• Location: ${sanitizeClientInput(exp.locationName, 80)} (${sanitizeClientInput(exp.country, 50)})\n• Tariff: ${sanitizeClientInput(exp.price, 50)}\nPlease share availability.`
@@ -1810,6 +2098,34 @@ export default function App() {
       exp.category === 'Stay'
         ? `${tripEstimator.nights} Nights`
         : `${tripEstimator.guests} Explorers`;
+
+    // Sync to D1 + Interakt WhatsApp API + Meta CAPI Lead deduplication
+    if (tripEstimator.guestPhone.replace(/\D/g, '').length >= 8) {
+      dispatchOmnichannelLead({
+        name: sanitizeClientInput(tripEstimator.guestName || 'Website Guest', 80),
+        phone: sanitizeClientInput(tripEstimator.guestPhone, 30),
+        category: exp.category,
+        destination: exp.locationName,
+        listingId: exp.id,
+        dates: tripEstimator.checkIn || 'Flexible',
+        nights: tripEstimator.nights,
+        guests: tripEstimator.guests,
+        estimatedValueInr: estimatedTotal,
+        currency,
+        notes: `Estimator Request: ${exp.name} (${unitLabel})`,
+        sourceChannel: 'website'
+      });
+      showToast('Brochure & availability request dispatched via Interakt Concierge!');
+    } else {
+      trackOmnichannelEvent({
+        eventName: 'whatsapp_handoff',
+        category: exp.category,
+        destination: exp.locationName,
+        listingId: exp.id,
+        valueInr: estimatedTotal
+      });
+    }
+
     const dateLine = tripEstimator.checkIn ? `\n• Preferred Date: ${tripEstimator.checkIn}` : '';
     const text = encodeURIComponent(
       `Hello ${siteContent.businessName}! I would like to request availability:\n• ${sanitizeClientInput(exp.category, 20)}: ${sanitizeClientInput(exp.name, 120)}\n• Destination: ${sanitizeClientInput(exp.locationName, 80)} (${sanitizeClientInput(exp.country, 50)})${dateLine}\n• Party & Duration: ${tripEstimator.guests} Guests • ${unitLabel}\n• Estimated Tariff (${currency}): ${formattedTotal}\nPlease share curated itinerary & booking link.`
@@ -1842,6 +2158,13 @@ export default function App() {
 
   const handleSendWishlistToConcierge = () => {
     if (savedExperiences.length === 0) return;
+    const totalInr = savedExperiences.reduce((acc, item) => acc + (item.numericPrice || 35000), 0);
+    trackOmnichannelEvent({
+      eventName: 'whatsapp_handoff',
+      category: savedExperiences[0]?.category || 'Stay',
+      destination: savedExperiences.map((i) => i.locationName).slice(0, 3).join(', '),
+      valueInr: totalInr
+    });
     const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
     const lines = savedExperiences
       .map(
@@ -1871,6 +2194,7 @@ export default function App() {
       setIsHostAuthenticated(true);
       setAuthError('');
       setHostPasscode('');
+      loadCuratorOmnichannelData(digest);
     } else {
       setAuthAttempts((prev) => prev + 1);
       setAuthError('Invalid curator passcode.');
@@ -2043,6 +2367,11 @@ export default function App() {
                 selectedLocation={activeLocation}
                 onSelectLocation={(loc) => {
                   setActiveLocation(loc);
+                  trackOmnichannelEvent({
+                    eventName: 'globe_stamp_click',
+                    category: selectedCategory,
+                    destination: loc.name
+                  });
                   handleOpenCategoryCatalog(selectedCategory, loc.id);
                 }}
                 onScrollToExplorer={(loc) =>
@@ -2103,6 +2432,11 @@ export default function App() {
                           onClick={() => {
                             setSelectedCategory(option);
                             setCatalogLocationFilter('ALL');
+                            trackOmnichannelEvent({
+                              eventName: 'category_select',
+                              category: option,
+                              destination: 'All Destinations'
+                            });
                           }}
                           className={`py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-sans-clean transition-all duration-300 ${
                             isActive
@@ -3089,7 +3423,15 @@ export default function App() {
                         <button
                           key={code}
                           type="button"
-                          onClick={() => setCurrency(code)}
+                          onClick={() => {
+                            setCurrency(code);
+                            trackOmnichannelEvent({
+                              eventName: 'currency_switch',
+                              category: detailExperience.category,
+                              destination: detailExperience.locationName,
+                              listingId: detailExperience.id
+                            });
+                          }}
                           className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
                             currency === code
                               ? 'bg-[#f6eedc] text-[#09090b] font-bold'
@@ -3175,12 +3517,19 @@ export default function App() {
                         </span>
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
                             setTripEstimator((prev) => ({
                               ...prev,
                               guests: Math.min(16, prev.guests + 1)
-                            }))
-                          }
+                            }));
+                            trackOmnichannelEvent({
+                              eventName: 'estimator_update',
+                              category: detailExperience.category,
+                              destination: detailExperience.locationName,
+                              listingId: detailExperience.id,
+                              valueInr: estimatedTotal
+                            });
+                          }}
                           className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
                           aria-label="Increase guests"
                         >
@@ -3188,6 +3537,28 @@ export default function App() {
                         </button>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Optional Quick Interakt WhatsApp Brochure Capture */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                    <input
+                      type="text"
+                      placeholder="Your Name (Optional — for instant brochure)"
+                      value={tripEstimator.guestName}
+                      onChange={(e) =>
+                        setTripEstimator({ ...tripEstimator, guestName: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/15 text-white placeholder:text-white/40 text-xs"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="WhatsApp Number (Triggers automated PDF)"
+                      value={tripEstimator.guestPhone}
+                      onChange={(e) =>
+                        setTripEstimator({ ...tripEstimator, guestPhone: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/15 text-white placeholder:text-white/40 text-xs"
+                    />
                   </div>
 
                   <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -3385,7 +3756,7 @@ export default function App() {
               </form>
             ) : (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-2 p-1 rounded-full bg-black/40 border border-white/15 text-xs">
+                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-full bg-black/40 border border-white/15 text-[11px] sm:text-xs">
                   <button
                     type="button"
                     onClick={() => {
@@ -3398,7 +3769,7 @@ export default function App() {
                         : 'text-white/70 hover:text-white'
                     }`}
                   >
-                    1. Add Stay / Tour / Trek
+                    1. Add Listing
                   </button>
                   <button
                     type="button"
@@ -3412,7 +3783,23 @@ export default function App() {
                         : 'text-white/70 hover:text-white'
                     }`}
                   >
-                    2. Edit Business &amp; Pages
+                    2. Business Pages
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudioTab('analytics');
+                      setD1Status('');
+                      loadCuratorOmnichannelData();
+                    }}
+                    className={`py-2 rounded-full font-bold transition inline-flex items-center justify-center gap-1 ${
+                      studioTab === 'analytics'
+                        ? 'bg-[#f6eedc] text-[#09090b]'
+                        : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>3. Analytics &amp; CRM</span>
                   </button>
                 </div>
 
@@ -3506,7 +3893,7 @@ export default function App() {
                       Publish to Location Window &amp; D1
                     </button>
                   </form>
-                ) : (
+                ) : studioTab === 'pages' ? (
                   <form onSubmit={handleSaveSiteContent} className="space-y-3.5 text-xs">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -3654,6 +4041,156 @@ export default function App() {
                       </button>
                     </div>
                   </form>
+                ) : (
+                  <div className="space-y-5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-mono-tech uppercase text-[#d6c5b3]">
+                          CLOUDFLARE D1 + INTERAKT + META CAPI
+                        </div>
+                        <div className="text-sm font-bold text-white">
+                          Live 30-Day Omnichannel Funnel &amp; Leads
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => loadCuratorOmnichannelData()}
+                        className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-mono-tech text-[10px] uppercase inline-flex items-center gap-1.5 transition"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${crmLoading ? 'animate-spin' : ''}`} />
+                        <span>Refresh</span>
+                      </button>
+                    </div>
+
+                    {/* Funnel KPIs */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                        <div className="text-[10px] font-mono-tech uppercase text-white/55">
+                          Stamp Clicks
+                        </div>
+                        <div className="font-serif-editorial text-2xl text-[#f6eedc]">
+                          {analyticsData?.funnel?.globe_stamp_click ?? 0}
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                        <div className="text-[10px] font-mono-tech uppercase text-white/55">
+                          Detail Views
+                        </div>
+                        <div className="font-serif-editorial text-2xl text-[#f6eedc]">
+                          {analyticsData?.funnel?.detail_view ?? 0}
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                        <div className="text-[10px] font-mono-tech uppercase text-white/55">
+                          Total Leads
+                        </div>
+                        <div className="font-serif-editorial text-2xl text-[#9eb393]">
+                          {crmInquiries.length}
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                        <div className="text-[10px] font-mono-tech uppercase text-white/55">
+                          Pipeline Value
+                        </div>
+                        <div className="font-serif-editorial text-2xl text-[#d6c5b3]">
+                          ₹
+                          {crmInquiries
+                            .reduce((s, r) => s + Number(r.estimated_value_inr || 0), 0)
+                            .toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Destination Intent Breakdown */}
+                    {analyticsData?.destinations?.length > 0 && (
+                      <div className="p-4 rounded-2xl bg-black/35 border border-white/10 space-y-2.5">
+                        <div className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                          TOP DESTINATIONS BY INTENT
+                        </div>
+                        <div className="space-y-1.5">
+                          {analyticsData.destinations.map((d) => (
+                            <div
+                              key={d.destination}
+                              className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0 text-[11px]"
+                            >
+                              <span className="font-medium text-white">{d.destination}</span>
+                              <span className="font-mono-tech text-white/70">
+                                {d.stamp_clicks} Stamps • {d.detail_views} Views • {d.intents} Intents
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Live Omnichannel CRM Leads Inbox */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                          OMNICHANNEL INQUIRIES (MARKING &ldquo;CONFIRMED&rdquo; FIRES META CAPI PURCHASE)
+                        </span>
+                      </div>
+
+                      {crmInquiries.length === 0 ? (
+                        <div className="p-6 rounded-2xl bg-black/35 border border-white/10 text-center text-white/55">
+                          No D1 leads recorded yet. Submit the Contact form, Estimator WhatsApp field, or an Instagram/WhatsApp message via Interakt to see live attribution here.
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                          {crmInquiries.map((inq) => (
+                            <div
+                              key={inq.id}
+                              className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                            >
+                              <div className="space-y-0.5 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white">{inq.name}</span>
+                                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-mono-tech uppercase text-[#d6c5b3]">
+                                    {inq.source_channel || 'website'}
+                                  </span>
+                                  {inq.interakt_synced === 1 && (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-mono-tech text-[#9eb393]">
+                                      <CheckCircle2 className="w-3 h-3" /> Interakt
+                                    </span>
+                                  )}
+                                  {inq.capi_synced === 1 && (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-mono-tech text-[#9eb393]">
+                                      <CheckCircle2 className="w-3 h-3" /> CAPI
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-white/70 truncate">
+                                  {inq.category} • {inq.destination} • {inq.country_code || '+91'}{' '}
+                                  {inq.phone}
+                                </div>
+                                {Number(inq.estimated_value_inr) > 0 && (
+                                  <div className="text-[10px] font-mono-tech text-[#d6c5b3]">
+                                    Est. ₹{Number(inq.estimated_value_inr).toLocaleString('en-IN')} •{' '}
+                                    {inq.dates || 'Flexible'}
+                                  </div>
+                                )}
+                              </div>
+
+                              <select
+                                value={inq.status || 'New Inquiry'}
+                                onChange={(e) =>
+                                  handleUpdateInquiryStatus(inq.id, e.target.value)
+                                }
+                                className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/20 text-[11px] text-white shrink-0"
+                              >
+                                <option value="New Inquiry">New Inquiry</option>
+                                <option value="Qualified">Qualified</option>
+                                <option value="Proposal Sent">Proposal Sent</option>
+                                <option value="Confirmed">Confirmed (CAPI Purchase)</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Archived">Archived</option>
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
