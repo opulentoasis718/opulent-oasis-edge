@@ -1116,11 +1116,16 @@ function StampGlobeHero({
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
     camera.position.set(0, 0, 4.05);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance'
-    });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+    } catch {
+      return undefined;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1421,13 +1426,16 @@ function StampGlobeHero({
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let isInViewport = true;
-    const visibilityObserver = new IntersectionObserver(
-      ([entry]) => {
-        isInViewport = entry.isIntersecting;
-      },
-      { threshold: 0.05 }
-    );
-    visibilityObserver.observe(container);
+    let visibilityObserver = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      visibilityObserver = new IntersectionObserver(
+        ([entry]) => {
+          isInViewport = entry.isIntersecting;
+        },
+        { threshold: 0.05 }
+      );
+      visibilityObserver.observe(container);
+    }
 
     let reqId;
     let frameCounter = 0;
@@ -1485,7 +1493,7 @@ function StampGlobeHero({
 
     return () => {
       cancelAnimationFrame(reqId);
-      visibilityObserver.disconnect();
+      if (visibilityObserver) visibilityObserver.disconnect();
       domElem.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
