@@ -324,7 +324,7 @@ const EDITORIAL_STAMP_CSS = `
     padding: 5px;
     border-radius: 2px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(214, 197, 179, 0.3);
-    background-image:
+    background-image: 
       radial-gradient(circle at 0 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 100% 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 50% 0, transparent 3.5px, #f6eedc 4px),
@@ -399,6 +399,7 @@ const EDITORIAL_STAMP_CSS = `
     }
   }
 
+  /* Awwwards Accessibility: Crisp Keyboard Focus Indicators */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
