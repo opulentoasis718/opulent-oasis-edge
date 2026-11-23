@@ -324,7 +324,7 @@ const EDITORIAL_STAMP_CSS = `
     padding: 5px;
     border-radius: 2px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(214, 197, 179, 0.3);
-    background-image: 
+    background-image:
       radial-gradient(circle at 0 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 100% 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 50% 0, transparent 3.5px, #f6eedc 4px),
@@ -399,7 +399,6 @@ const EDITORIAL_STAMP_CSS = `
     }
   }
 
-  /* Awwwards Accessibility: Crisp Keyboard Focus Indicators */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
@@ -1117,11 +1116,16 @@ function StampGlobeHero({
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
     camera.position.set(0, 0, 4.05);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance'
-    });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+    } catch {
+      return undefined;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1422,13 +1426,16 @@ function StampGlobeHero({
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let isInViewport = true;
-    const visibilityObserver = new IntersectionObserver(
-      ([entry]) => {
-        isInViewport = entry.isIntersecting;
-      },
-      { threshold: 0.05 }
-    );
-    visibilityObserver.observe(container);
+    let visibilityObserver = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      visibilityObserver = new IntersectionObserver(
+        ([entry]) => {
+          isInViewport = entry.isIntersecting;
+        },
+        { threshold: 0.05 }
+      );
+      visibilityObserver.observe(container);
+    }
 
     let reqId;
     let frameCounter = 0;
@@ -1486,7 +1493,7 @@ function StampGlobeHero({
 
     return () => {
       cancelAnimationFrame(reqId);
-      visibilityObserver.disconnect();
+      if (visibilityObserver) visibilityObserver.disconnect();
       domElem.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
