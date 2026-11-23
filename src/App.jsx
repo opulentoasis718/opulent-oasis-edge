@@ -1,97 +1,107 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import {
-  Sun,
-  Moon,
   X,
   ArrowUpRight,
   MapPin,
   ArrowLeft,
   Compass,
-  Sparkles,
   Plus,
   Check,
   Star,
-  Home,
-  BarChart2,
-  Image as ImageIcon,
   Info,
   ChevronLeft,
   ChevronRight,
-  RotateCcw,
   Globe,
-  ShieldCheck,
   Mail,
   Phone,
-  FileText,
-  HelpCircle,
-  RefreshCw,
-  Send
+  Send,
+  Calendar,
+  Heart,
+  Trash2,
+  Clock,
+  Sparkles,
+  Sun,
+  Copy
 } from 'lucide-react';
 
 // ============================================================================
-// CUSTOMIZE YOUR BUSINESS & MANDATORY PAGES CONTENT HERE
-// (Or edit live from the website via Curator Studio -> "Edit Business & Pages")
+// EDITABLE BUSINESS & MANDATORY PAGES CONFIGURATION
 // ============================================================================
 const DEFAULT_SITE_CONTENT = {
   businessName: 'Opulent Oasis',
   tagline: 'OPULENT OASIS',
   domain: 'OPULENTOASIS.CO.IN',
   whatsappNumber: '919820000000',
-  phoneDisplay: '+91 98200 00000 (WhatsApp & Direct)',
+  phoneDisplay: '+91 98200 00000',
   email: 'Sheldon@opulentoasis.co.in',
-  address: 'Ballard Estate & Gorai Coast, Mumbai, Maharashtra 400001',
-  aboutTitle: 'About Opulent Oasis',
+  address: 'Ballard Estate & Gorai Coast, Mumbai 400001, India',
+  aboutTitle: 'Curating Rare Architectural Sanctuaries & Voyages',
   aboutDescription:
-    'Opulent Oasis is a curated architectural hospitality and private expedition collective headquartered in Mumbai, Maharashtra. We design and steward private glasshouse villas, bespoke yacht and helicopter charters, and UIAA-guided high-altitude treks across Alibaug, Gorai, the Sahyadri Crest, Spiti Valley, Bhutan, and the Swiss Alps.',
-  stat1Value: '06',
-  stat1Label: 'Operating Stamp Destinations',
-  stat2Value: '100%',
-  stat2Label: 'Private & Vetted Sanctuaries',
+    'Opulent Oasis is a private luxury hospitality and expedition house crafting unhurried stays, chartered yacht & helicopter tours, and high-altitude guided treks across India, Bhutan, and the Swiss Alps.\n\nEvery villa, vessel, and trail in our collection is personally vetted for architectural provenance, seclusion, and warm, anticipatory service.',
+  stat1Value: '18+',
+  stat1Label: 'Curated Stays, Tours & Treks',
+  stat2Value: '6',
+  stat2Label: 'Signature Global Destinations',
   stat3Value: '24/7',
-  stat3Label: 'Dedicated Personal Concierge',
+  stat3Label: 'Private Concierge Desk',
   faqs: [
     {
-      q: 'How do I confirm a Stay, Tour, or Trek reservation?',
-      a: 'Select any category window on our home page, browse the 3D catalog, and click "Book". Our concierge confirms availability and shares a secure payment link.'
+      q: 'How do I confirm a reservation or bespoke itinerary?',
+      a: 'Select any Stay, Tour, or Trek from our 3D Stamp Atlas or Catalog, configure your preferred dates and party size in the Live Tariff Estimator, and dispatch your request directly to our 24/7 WhatsApp Concierge.'
     },
     {
-      q: 'Are private transfers (speedboats / helicopters) included?',
-      a: 'Our Bhutan and Zermatt Heli-Odysseys include private aviation. For Alibaug and Gorai villas, private speedboat transfers from Gateway of India can be bundled upon request.'
+      q: 'Are private speedboats, helicopters, and 4x4 transfers included?',
+      a: 'We arrange end-to-end private transfers—including Gateway of India speedboats to Alibaug, Defender 4x4 convoys in the Western Ghats and Spiti, and Airbus H130 helicopters in Bhutan and Zermatt.'
     },
     {
-      q: 'Can itineraries and menus be customized for private groups?',
-      a: 'Yes. Every villa features a private farm-to-table chef, and all guided treks and tours can be tailored to your group’s pace and dietary preferences.'
+      q: 'Can we combine multiple destinations into one voyage?',
+      a: 'Yes. Tap the Star or Heart icon on any experience to build your Saved Voyages shortlist, then send the combined itinerary to our concierge in one click.'
     }
   ],
   refundPolicy1:
-    '1. Flexible Rescheduling: Guests may reschedule any Stay, Tour, or Trek free of charge up to 14 days prior to check-in or expedition departure.',
+    '1. Flexible Cancellation Window: Reservations cancelled 30 or more days prior to check-in or expedition departure qualify for a 100% refund or complimentary date reschedule.',
   refundPolicy2:
-    '2. Full & Partial Refunds: Cancellations made 21+ days before arrival receive a 100% refund. Cancellations between 7 and 20 days receive a 50% refund or 100% future travel credit valid for 12 months.',
+    '2. Moderate Window (15–29 Days): Cancellations made between 15 and 29 days prior to arrival receive a 50% refund or 100% credit toward a future Opulent Oasis voyage valid for 12 months.',
   refundPolicy3:
-    '3. Weather & Mountain Safety Guarantee: If severe weather or aviation advisories delay a trek or yacht/helicopter charter, Opulent Oasis provides an immediate full date transfer or refund.',
+    '3. Within 14 Days & Weather Safety: Bookings cancelled within 14 days are non-refundable unless cancelled by Opulent Oasis due to severe maritime or alpine weather advisories, in which case a full refund or priority rebooking is guaranteed.',
   termsParagraph1:
-    'Welcome to Opulent Oasis (opulentoasis.co.in). By accessing our website or reserving a Stay, Tour, or Trek, you agree to abide by our sanctuary house rules, check-in security verification (valid government ID required for all guests), and environmental preservation guidelines.',
+    'All bookings with Opulent Oasis are subject to guest identity verification (valid government photo ID or passport for international guests) and adherence to local sanctuary quiet hours and environmental preservation guidelines.',
   termsParagraph2:
-    'High-altitude expeditions in Spiti Valley, Sahyadri, Bhutan, and Zermatt require standard medical fitness declarations. All disputes are subject to the exclusive jurisdiction of the courts in Mumbai, Maharashtra, India.',
+    'Tariffs displayed in INR, USD, EUR, or CHF are indicative estimates excluding applicable statutory taxes unless specified. All legal disputes are subject to the exclusive jurisdiction of the courts in Mumbai, Maharashtra, India.',
   privacyParagraph1:
-    'Opulent Oasis respects your privacy and complies with India’s Digital Personal Data Protection Act (DPDP) and global GDPR standards. We collect only essential reservation details (name, contact number, travel dates, and guest preferences) required to fulfill your hospitality experience.',
+    'Opulent Oasis respects your privacy and complies with India’s Digital Personal Data Protection (DPDP) Act and GDPR principles. We collect only the contact details and travel preferences you voluntarily submit to fulfill concierge inquiries and bookings.',
   privacyParagraph2:
-    'We never sell or share guest data with third-party advertisers. All inquiries and listings are protected via TLS encryption and strict HTTP security headers.'
+    'We never sell, rent, or trade guest data to third-party advertisers. All transmissions are encrypted over HTTPS/TLS.'
 };
 
-// Precomputed SHA-256 digest of Curator Passcode ('oasis2026') for Zero-Plaintext Verification
-const CURATOR_PASSCODE_SHA256 = '457e60590089897c1e7b8293681b6577049a20b56634194a0e9d76294b929a22';
+// Precomputed SHA-256 hex digest of default curator passcode ('oasis2026')
+const CURATOR_PASSCODE_SHA256 =
+  '457e60590089897c1e7b8293681b6577049a20b56634194a0e9d76294b929a22';
 
-async function computeSha256Hex(text) {
-  if (typeof window !== 'undefined' && window.crypto?.subtle) {
-    const buf = new TextEncoder().encode(text);
-    const digest = await window.crypto.subtle.digest('SHA-256', buf);
-    return Array.from(new Uint8Array(digest))
+async function computeSha256Hex(message) {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const data = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   }
-  return text === 'oasis2026' ? CURATOR_PASSCODE_SHA256 : '';
+  return message === 'oasis2026' ? CURATOR_PASSCODE_SHA256 : '';
+}
+
+// Multi-currency conversion table for international luxury guests
+const CURRENCY_CONFIG = {
+  INR: { symbol: '₹', rate: 1, locale: 'en-IN' },
+  USD: { symbol: '$', rate: 1 / 84, locale: 'en-US' },
+  EUR: { symbol: '€', rate: 1 / 91, locale: 'de-DE' },
+  CHF: { symbol: 'CHF ', rate: 1 / 96, locale: 'de-CH' }
+};
+
+function formatConvertedTariff(inrAmount, currencyCode = 'INR') {
+  const cfg = CURRENCY_CONFIG[currencyCode] || CURRENCY_CONFIG.INR;
+  const converted = Math.round(inrAmount * cfg.rate);
+  return `${cfg.symbol}${converted.toLocaleString(cfg.locale)}`;
 }
 
 function sanitizeClientInput(value, maxLength = 240) {
@@ -122,20 +132,18 @@ const EDITORIAL_STAMP_CSS = `
     font-family: 'Space Mono', monospace;
   }
 
-  /* Matte Paper & Charcoal Grain from Reference 1 */
   .matte-frame-grain {
     background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
     background-size: 24px 24px;
   }
 
-  /* Authentic Perforated Postage Stamp Edges from Reference 2 */
   .postage-stamp {
     position: relative;
     background: #f6eedc;
     padding: 5px;
     border-radius: 2px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(214, 197, 179, 0.3);
-    background-image: 
+    background-image:
       radial-gradient(circle at 0 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 100% 50%, transparent 3.5px, #f6eedc 4px),
       radial-gradient(circle at 50% 0, transparent 3.5px, #f6eedc 4px),
@@ -158,36 +166,69 @@ const EDITORIAL_STAMP_CSS = `
     box-shadow: 0 18px 38px rgba(0, 0, 0, 0.8), 0 0 20px rgba(214, 197, 179, 0.5);
   }
 
-  /* Notched Viewport Chamfer from Reference 1 */
-  .notched-top-bar {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 82% 100%, 79% 0, 21% 0, 18% 100%, 0 100%);
+  @keyframes editorialFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  .notched-bottom-bar {
-    clip-path: polygon(0 0, 28% 0, 31% 35%, 47% 35%, 50% 75%, 53% 35%, 69% 35%, 72% 0, 100% 0, 100% 100%, 0 100%);
+  .animate-editorial-in {
+    animation: editorialFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  /* Barcode Generator Pattern */
-  .barcode-strip {
-    background: repeating-linear-gradient(
-      90deg,
-      currentColor 0px,
-      currentColor 2px,
-      transparent 2px,
-      transparent 4px,
-      currentColor 4px,
-      currentColor 5px,
-      transparent 5px,
-      transparent 8px,
-      currentColor 8px,
-      currentColor 11px,
-      transparent 11px,
-      transparent 13px
+  .card-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 20%,
+      rgba(246, 238, 220, 0.14) 50%,
+      transparent 80%
     );
+    transform: translateX(-120%);
+    transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    z-index: 15;
+  }
+
+  .card-sheen:hover::after {
+    transform: translateX(120%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-editorial-in {
+      animation: none;
+    }
+    .postage-stamp {
+      transition: none;
+    }
+    .card-sheen::after {
+      display: none;
+    }
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #d6c5b3;
+    outline-offset: 2px;
   }
 `;
 
-// Destination Hubs with Illustrated Postage Stamp themes (Ref 2) + Stays, Tours & Treks per Location (Ref 3)
+// Destination Hubs with Illustrated Postage Stamp themes & Seasonal Climate Windows
 const DESTINATION_LOCATIONS = [
   {
     id: 'loc-alibaug',
@@ -203,8 +244,10 @@ const DESTINATION_LOCATIONS = [
     stampMotif: 'palm',
     rating: '4.9/5',
     stars: 5,
+    peakMonths: [10, 11, 12, 1, 2, 3, 4, 5],
+    climateLabel: '26°C Coastal Breeze',
     heroImage: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=85',
-    summary: 'Heirloom mango orchards, private speedboat jetties, and coastal Portuguese glasshouses.',
+    summary: 'Heirloom mango orchards, private speedboat jetties, and coastal Portuguese glasshouses.'
   },
   {
     id: 'loc-gorai',
@@ -220,8 +263,10 @@ const DESTINATION_LOCATIONS = [
     stampMotif: 'wave',
     rating: '4.8/5',
     stars: 5,
+    peakMonths: [11, 12, 1, 2, 3, 4],
+    climateLabel: '25°C Arabian Sea Air',
     heroImage: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=85',
-    summary: 'Secluded beachfront courtyards where the Arabian Sea meets unspoiled palm groves.',
+    summary: 'Secluded beachfront courtyards where the Arabian Sea meets unspoiled palm groves.'
   },
   {
     id: 'loc-sahyadri',
@@ -237,8 +282,10 @@ const DESTINATION_LOCATIONS = [
     stampMotif: 'peak',
     rating: '4.9/5',
     stars: 5,
+    peakMonths: [7, 8, 9, 10, 11, 12, 1, 2],
+    climateLabel: '18°C Highland Mist',
     heroImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85',
-    summary: 'Dramatic basalt cliff amphitheaters, cloud-forest waterfalls, and luxury geodesic star-beds.',
+    summary: 'Dramatic basalt cliff amphitheaters, cloud-forest waterfalls, and luxury geodesic star-beds.'
   },
   {
     id: 'loc-spiti',
@@ -254,8 +301,10 @@ const DESTINATION_LOCATIONS = [
     stampMotif: 'sun',
     rating: '4.9/5',
     stars: 5,
+    peakMonths: [5, 6, 7, 8, 9, 10],
+    climateLabel: '11°C Crisp Alpine Sky',
     heroImage: 'https://images.unsplash.com/photo-1518002054494-3a6f94352e9d?auto=format&fit=crop&w=1200&q=85',
-    summary: 'Ancient Trans-Himalayan silk-route monasteries and high-altitude glacier sanctuaries.',
+    summary: 'Ancient Trans-Himalayan silk-route monasteries and high-altitude glacier sanctuaries.'
   },
   {
     id: 'loc-paro',
@@ -271,8 +320,10 @@ const DESTINATION_LOCATIONS = [
     stampMotif: 'temple',
     rating: '5.0/5',
     stars: 5,
+    peakMonths: [3, 4, 5, 9, 10, 11],
+    climateLabel: '14°C Blue Pine Valley',
     heroImage: 'https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&w=1200&q=85',
-    summary: 'Sacred cliffside monasteries, helicopter valley charters, and riverfront hot-stone baths.',
+    summary: 'Sacred cliffside monasteries, helicopter valley charters, and riverfront hot-stone baths.'
   },
   {
     id: 'loc-zermatt',
@@ -288,14 +339,14 @@ const DESTINATION_LOCATIONS = [
     stampMotif: 'alps',
     rating: '5.0/5',
     stars: 5,
+    peakMonths: [12, 1, 2, 3, 4, 6, 7, 8, 9],
+    climateLabel: '-2°C Matterhorn Snow',
     heroImage: 'https://images.unsplash.com/photo-1502784444187-359ac186c5bb?auto=format&fit=crop&w=1200&q=85',
-    summary: 'Ski-in glass-walled alpine chalets, cedar thermal spas, and private glacier helicopters.',
+    summary: 'Ski-in glass-walled alpine chalets, cedar thermal spas, and private glacier helicopters.'
   }
 ];
 
-// Complete Stays, Tours & Treks mapped to each specific location
 const INITIAL_EXPERIENCES = [
-  // ALIBAUG: Stay, Tour, Trek
   {
     id: 'alibaug-stay-1',
     locationId: 'loc-alibaug',
@@ -344,8 +395,6 @@ const INITIAL_EXPERIENCES = [
     image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=85',
     description: 'Guided naturalist walk through the coastal biodiversity reserve of Phansad ending with a cliffside picnic at the 16th-century Korlai lighthouse.'
   },
-
-  // GORAI: Stay, Tour, Trek
   {
     id: 'gorai-stay-1',
     locationId: 'loc-gorai',
@@ -394,8 +443,6 @@ const INITIAL_EXPERIENCES = [
     image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=85',
     description: 'Dawn kayaking through pristine Gorai mangrove creeks followed by an archaeological ascent to 2,000-year-old rock-cut forest caves.'
   },
-
-  // SAHYADRI: Stay, Tour, Trek
   {
     id: 'sahyadri-stay-1',
     locationId: 'loc-sahyadri',
@@ -444,8 +491,6 @@ const INITIAL_EXPERIENCES = [
     image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85',
     description: 'Ascend ancient rock-cut steps through cloud forests to the dramatic 1,424m Kokankada vertical cliff overhang with full porter and chef support.'
   },
-
-  // SPITI VALLEY: Stay, Tour, Trek
   {
     id: 'spiti-stay-1',
     locationId: 'loc-spiti',
@@ -494,8 +539,6 @@ const INITIAL_EXPERIENCES = [
     image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=85',
     description: 'High-altitude Himalayan crest trek connecting turquoise glacial lakes and nomadic pastures with luxury heated dining domes.'
   },
-
-  // PARO VALLEY: Stay, Tour, Trek
   {
     id: 'paro-stay-1',
     locationId: 'loc-paro',
@@ -544,8 +587,6 @@ const INITIAL_EXPERIENCES = [
     image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=85',
     description: 'Walk through rhododendron forests and high-altitude yak herder trails between Paro and Thimphu with luxury glamping camps.'
   },
-
-  // ZERMATT ALPS: Stay, Tour, Trek
   {
     id: 'zermatt-stay-1',
     locationId: 'loc-zermatt',
@@ -596,7 +637,6 @@ const INITIAL_EXPERIENCES = [
   }
 ];
 
-// Additional curated options per category so every Location Window has a rich multi-card deck to slide through
 const EXTRA_CATEGORY_VARIATIONS = [
   {
     suffix: 'ii',
@@ -660,12 +700,157 @@ const EXTRA_CATEGORY_VARIATIONS = [
   }
 ];
 
-// SVG Stamp Illustration Renderer matching Reference Image 2 (Colombia Illustrated Stamps)
+function getExperienceTravelMeta(exp) {
+  const currentMonth = new Date().getMonth() + 1;
+  const loc = DESTINATION_LOCATIONS.find((l) => l.id === exp.locationId);
+  const inSeasonNow = loc ? loc.peakMonths.includes(currentMonth) : true;
+  const climateLabel = loc?.climateLabel || '22°C Mild Climate';
+
+  const seasonByLocation = {
+    'loc-alibaug': 'Oct – May (Coastal Breeze)',
+    'loc-gorai': 'Nov – Apr (Clear Arabian Skies)',
+    'loc-sahyadri': 'Jul – Feb (Mist & Starlight)',
+    'loc-spiti': 'May – Oct (High-Pass Window)',
+    'loc-paro': 'Mar – May & Sep – Nov',
+    'loc-zermatt': 'Dec – Apr (Ski) • Jun – Sep (Alps)'
+  };
+
+  const transferByLocation = {
+    'loc-alibaug': '20-min Private Speedboat from Gateway of India',
+    'loc-gorai': 'Private Jetty Ferry or Chauffeur Coastal Drive',
+    'loc-sahyadri': 'Chauffeur 4x4 Defender Transfer from Mumbai / Pune',
+    'loc-spiti': 'Private Heated 4x4 Convoy + Heli Charter Option',
+    'loc-paro': 'Paro International VIP Reception + Private SUV / Heli',
+    'loc-zermatt': 'First-Class Alpine Rail or Private Glacier Helicopter'
+  };
+
+  const inclusionsByCategory = {
+    Stay: [
+      'Private Farm-to-Table Estate Chef & Daily Breakfast',
+      '24/7 Dedicated Sanctuary Butler & Concierge',
+      'Curated Welcome Ritual & Sunset Aperitifs',
+      'High-Speed Starlink Wi-Fi & Private Grounds Access'
+    ],
+    Tour: [
+      'Private Chartered Vessel, 4x4 Convoy, or Aviation',
+      'Lead Cultural Historian / Naturalist Curator',
+      'Gourmet Trail Dining & Artisanal Refreshments',
+      'All Permits, Heritage Access Fees & Concierge Logistics'
+    ],
+    Trek: [
+      'UIAA / NIM Certified Lead Mountain Expedition Guide',
+      'Full Porter Support & Luxury Heated Basecamp Domes',
+      'Satellite Safety Comms, Oxygen & First-Aid Protocol',
+      'Chef-Prepared High-Altitude Trail Nutrition'
+    ]
+  };
+
+  const itineraryByCategory = {
+    Stay: [
+      {
+        day: 'Day 01',
+        title: 'Private Arrival & Golden-Hour Welcome',
+        detail: `Private transfer into ${exp.locationName}, chilled artisanal aperitifs by the terrace, and a five-course chef’s welcome supper under the stars.`
+      },
+      {
+        day: 'Day 02',
+        title: 'Unscripted Sanctuary Living',
+        detail: 'Slow sunlit breakfast, private spa or wellness ritual, optional naturalist walk across the estate, and candlelit bonfire lounge.'
+      },
+      {
+        day: 'Day 03',
+        title: 'Morning Coffee & Seamless Departure',
+        detail: 'Leisurely brunch overlooking the landscape followed by priority chauffeur or speedboat departure.'
+      }
+    ],
+    Tour: [
+      {
+        day: 'Stage 01',
+        title: 'Curator Briefing & Private Charter Launch',
+        detail: `Meet your private lead curator in ${exp.locationName} for an unhurried departure aboard our private vessel, 4x4, or helicopter.`
+      },
+      {
+        day: 'Stage 02',
+        title: 'Behind-the-Scenes Cultural Immersion',
+        detail: 'Exclusive private access to historic sanctuaries, local master artisans, and hidden scenic viewpoints far from commercial crowds.'
+      },
+      {
+        day: 'Stage 03',
+        title: 'Sunset Chef’s Table & Return',
+        detail: 'Toast the horizon with curated regional vintages and a private gourmet tasting menu before returning in comfort.'
+      }
+    ],
+    Trek: [
+      {
+        day: 'Day 01',
+        title: 'Trailhead Briefing & Ridge Ascent',
+        detail: `Acclimatization briefing with our UIAA-certified guide in ${exp.locationName}, followed by a scenic ascent to our heated geodesic basecamp.`
+      },
+      {
+        day: 'Day 02',
+        title: 'Dawn Summit & Alpine Vista',
+        detail: 'First-light ridge traverse to the signature lookout with hot trail espresso, panoramic photography stops, and celebratory basecamp dinner.'
+      },
+      {
+        day: 'Day 03',
+        title: 'Descent & Recovery Lounge',
+        detail: 'Gentle descent through forest or valley trails to a hot-stone recovery bath and private return transfer.'
+      }
+    ]
+  };
+
+  const galleryByCategory = {
+    Stay: [
+      { url: exp.image, label: 'Architectural Sanctuary' },
+      {
+        url: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=85',
+        label: 'Infinity Terrace & Horizon'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85',
+        label: 'Evening Courtyard Ambience'
+      }
+    ],
+    Tour: [
+      { url: exp.image, label: 'Signature Expedition' },
+      {
+        url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85',
+        label: 'Golden-Hour Charter'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=85',
+        label: 'Heritage & Landscapes'
+      }
+    ],
+    Trek: [
+      { url: exp.image, label: 'High-Altitude Crest' },
+      {
+        url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=85',
+        label: 'Alpine Valley Traverse'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=1200&q=85',
+        label: 'Dawn Summit Camp'
+      }
+    ]
+  };
+
+  return {
+    inSeasonNow,
+    climateLabel,
+    bestSeason: seasonByLocation[exp.locationId] || 'Year-Round Curated Window',
+    transfer: transferByLocation[exp.locationId] || 'Private Chauffeur Transfer Available',
+    inclusions: inclusionsByCategory[exp.category] || inclusionsByCategory.Stay,
+    itinerary: itineraryByCategory[exp.category] || itineraryByCategory.Stay,
+    gallery: galleryByCategory[exp.category] || galleryByCategory.Stay
+  };
+}
+
+// Illustrated SVG Stamp Artworks for the 3D Globe
 function StampArtworkSVG({ motif, bg, accent }) {
   return (
     <svg viewBox="0 0 80 68" className="w-full h-full block">
       <rect width="80" height="68" fill={bg} />
-      {/* Sun / Moon disc */}
       <circle cx="58" cy="18" r="7" fill={accent} />
       {motif === 'palm' && (
         <>
@@ -715,12 +900,11 @@ function StampArtworkSVG({ motif, bg, accent }) {
   );
 }
 
-// Interactive 3D Globe with Projected Perforated Postage Stamps & Dashed Travel Routes
+// Interactive 4K 3D Black Globe with Projected Perforated Postage Stamps
 function StampGlobeHero({
   locations,
   selectedLocation,
   onSelectLocation,
-  activeCategory,
   onScrollToExplorer
 }) {
   const mountRef = useRef(null);
@@ -729,7 +913,6 @@ function StampGlobeHero({
   const targetRotRef = useRef({ y: -1.35, x: 0.32 });
   const isDraggingRef = useRef(false);
 
-  // Rotate globe smoothly when selectedLocation changes
   useEffect(() => {
     if (selectedLocation) {
       const lngRad = (selectedLocation.lng * Math.PI) / 180;
@@ -767,7 +950,6 @@ function StampGlobeHero({
     const globeGroup = new THREE.Group();
     scene.add(globeGroup);
 
-    // 4K (4096x2048) Pure Black 3D Globe Texture + Bump Map with Accurate Geographic Landmasses
     const W = 4096;
     const H = 2048;
     const texCanvas = document.createElement('canvas');
@@ -780,7 +962,6 @@ function StampGlobeHero({
     bumpCanvas.height = H;
     const bCtx = bumpCanvas.getContext('2d');
 
-    // Deep pitch-black ocean base
     const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, '#050507');
     grad.addColorStop(0.5, '#020203');
@@ -791,7 +972,6 @@ function StampGlobeHero({
     bCtx.fillStyle = '#000000';
     bCtx.fillRect(0, 0, W, H);
 
-    // Fine 4K cartographic latitude/longitude graticule
     ctx.strokeStyle = 'rgba(214, 197, 179, 0.06)';
     ctx.lineWidth = 1.5;
     for (let x = 0; x <= W; x += 128) {
@@ -807,15 +987,12 @@ function StampGlobeHero({
       ctx.stroke();
     }
 
-    // Accurate geographic [lng, lat] to 4K equirectangular pixel helper
     const lonLatToXY = (lon, lat) => [
       ((lon + 180) / 360) * W,
       ((90 - lat) / 180) * H
     ];
 
-    // Accurate World Coastline Polygons [longitude, latitude]
     const WORLD_LANDMASSES = [
-      // North & Central America
       [
         [-168, 66], [-162, 70], [-140, 70], [-125, 72], [-95, 74], [-80, 70],
         [-65, 62], [-55, 52], [-60, 46], [-70, 42], [-75, 35], [-81, 25],
@@ -823,27 +1000,22 @@ function StampGlobeHero({
         [-78, 8], [-85, 11], [-92, 15], [-105, 20], [-110, 24], [-114, 30],
         [-117, 32], [-122, 37], [-124, 48], [-135, 58], [-150, 61], [-162, 55], [-168, 66]
       ],
-      // Greenland
       [
         [-52, 60], [-42, 60], [-22, 70], [-18, 81], [-45, 83], [-68, 76], [-56, 68], [-52, 60]
       ],
-      // South America
       [
         [-78, 9], [-72, 12], [-62, 10], [-50, 2], [-35, -6], [-38, -14],
         [-40, -22], [-48, -28], [-54, -34], [-62, -40], [-66, -48], [-68, -55],
         [-74, -52], [-73, -40], [-71, -30], [-70, -18], [-77, -12], [-81, -4], [-78, 2], [-78, 9]
       ],
-      // Africa
       [
         [-17, 15], [-13, 28], [-6, 36], [10, 37], [11, 33], [25, 32], [33, 31],
         [39, 20], [43, 12], [51, 12], [41, -1], [40, -10], [35, -24], [28, -33],
         [18, -35], [15, -24], [12, -15], [9, -2], [8, 4], [2, 6], [-8, 4], [-14, 9], [-17, 15]
       ],
-      // Madagascar
       [
         [49, -12], [50, -18], [47, -25], [44, -25], [44, -17], [49, -12]
       ],
-      // Eurasia (Europe, Arabia, Accurate India Peninsula, Southeast Asia, China, Siberia)
       [
         [-9, 37], [-9, 43], [-2, 43], [-4, 48], [2, 51], [8, 54], [10, 58],
         [5, 62], [16, 69], [28, 71], [35, 69], [42, 67], [60, 70], [85, 74],
@@ -857,26 +1029,21 @@ function StampGlobeHero({
         [38, 46], [30, 46], [24, 40], [22, 37], [19, 41], [14, 45], [18, 40],
         [15, 38], [12, 42], [9, 44], [5, 43], [3, 42], [-2, 36], [-9, 37]
       ],
-      // Sri Lanka
       [
         [80, 9.8], [81.8, 7.5], [80.6, 5.9], [79.8, 7.5], [80, 9.8]
       ],
-      // United Kingdom & Ireland
       [
         [-5, 50], [1.5, 51], [0, 54], [-2, 57], [-5, 58.5], [-5, 54], [-5, 50]
       ],
       [
         [-10, 51.5], [-6, 52], [-6, 55], [-9.5, 54.5], [-10, 51.5]
       ],
-      // Iceland
       [
         [-24, 64], [-14, 64.5], [-14, 66.5], [-23, 66], [-24, 64]
       ],
-      // Japan
       [
         [130, 31], [135, 34], [140, 36], [141, 41], [145, 44], [140, 43], [137, 37], [131, 34], [130, 31]
       ],
-      // Sumatra, Java & Borneo
       [
         [95, 5.5], [102, 1], [106, -5.5], [103, -5], [95, 5.5]
       ],
@@ -886,19 +1053,16 @@ function StampGlobeHero({
       [
         [109, 2], [117, 6], [118, 1], [116, -4], [111, -3], [109, 2]
       ],
-      // Australia
       [
         [114, -22], [122, -17], [131, -12], [136, -12], [137, -16], [142, -11],
         [146, -18], [153, -26], [150, -37], [142, -38], [136, -35], [130, -32],
         [122, -34], [115, -34], [113, -26], [114, -22]
       ],
-      // New Zealand
       [
         [173, -35], [178, -38], [175, -41], [172, -43], [167, -46], [169, -44], [174, -39], [173, -35]
       ]
     ];
 
-    // Render sculpted matte-obsidian landmasses with champagne gold borders & 3D bump height
     ctx.fillStyle = '#0e1013';
     ctx.strokeStyle = 'rgba(214, 197, 179, 0.55)';
     ctx.lineWidth = 3.2;
@@ -928,7 +1092,6 @@ function StampGlobeHero({
       bCtx.stroke();
     });
 
-    // Subtle internal stipple dot-grid clipped inside the continents for 4K tactile depth
     ctx.save();
     ctx.beginPath();
     WORLD_LANDMASSES.forEach((poly) => {
@@ -966,7 +1129,6 @@ function StampGlobeHero({
     const globeMesh = new THREE.Mesh(sphereGeo, sphereMat);
     globeGroup.add(globeMesh);
 
-    // Subtle outer atmosphere halo ring
     const ringGeo = new THREE.RingGeometry(1.43, 1.442, 128);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xd6c5b3,
@@ -979,7 +1141,6 @@ function StampGlobeHero({
     ringMesh.rotation.y = 0.25;
     scene.add(ringMesh);
 
-    // 3D Anchor Nodes for each Postage Stamp
     const latLngToVec3 = (lat, lng, radius) => {
       const phi = ((90 - lat) * Math.PI) / 180;
       const theta = ((lng + 180) * Math.PI) / 180;
@@ -1000,7 +1161,6 @@ function StampGlobeHero({
       return { loc, localPos: pos };
     });
 
-    // 3D Dashed Arcs connecting stamp locations on the sphere
     for (let i = 0; i < anchorNodes.length - 1; i++) {
       const start = anchorNodes[i].localPos;
       const end = anchorNodes[i + 1].localPos;
@@ -1020,7 +1180,6 @@ function StampGlobeHero({
       globeGroup.add(arcLine);
     }
 
-    // Lighting for 3D Sculpted Black Sphere
     scene.add(new THREE.AmbientLight(0xffffff, 1.1));
     const dirLight = new THREE.DirectionalLight(0xf6eedc, 1.85);
     dirLight.position.set(4, 3, 5);
@@ -1029,7 +1188,6 @@ function StampGlobeHero({
     rimLight.position.set(-4, -2, -3);
     scene.add(rimLight);
 
-    // Pointer Drag Rotation Controls
     let prevPointer = { x: 0, y: 0 };
     const domElem = renderer.domElement;
 
@@ -1068,17 +1226,19 @@ function StampGlobeHero({
     };
     window.addEventListener('resize', handleResize);
 
-    // Radial offset layout for stamps so adjacent Indian stamps never overlap
     const stampRadialOffsets = [
-      { dx: -68, dy: 28 },  // Alibaug
-      { dx: -76, dy: -36 }, // Gorai
-      { dx: 66, dy: 34 },   // Sahyadri
-      { dx: 18, dy: -66 },  // Spiti
-      { dx: 82, dy: -16 },  // Bhutan
-      { dx: -58, dy: -48 }  // Zermatt
+      { dx: -68, dy: 28 },
+      { dx: -76, dy: -36 },
+      { dx: 66, dy: 34 },
+      { dx: 18, dy: -66 },
+      { dx: 82, dy: -16 },
+      { dx: -58, dy: -48 }
     ];
 
-    // Tech-Max Optimization: Pause WebGL rendering when globe is scrolled offscreen or tab is hidden
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     let isInViewport = true;
     const visibilityObserver = new IntersectionObserver(
       ([entry]) => {
@@ -1095,17 +1255,18 @@ function StampGlobeHero({
 
       if (!isInViewport || document.hidden) return;
 
-      if (!isDraggingRef.current) {
+      if (!isDraggingRef.current && !prefersReducedMotion) {
         targetRotRef.current.y += 0.0008;
       }
 
       globeGroup.rotation.y += (targetRotRef.current.y - globeGroup.rotation.y) * 0.08;
       globeGroup.rotation.x += (targetRotRef.current.x - globeGroup.rotation.x) * 0.08;
-      ringMesh.rotation.z += 0.0009;
+      if (!prefersReducedMotion) {
+        ringMesh.rotation.z += 0.0009;
+      }
 
       globeGroup.updateMatrixWorld();
 
-      // Throttle React state projection updates to every 2nd frame for ultra-smooth 60fps CPU budget
       frameCounter += 1;
       if (frameCounter % 2 === 0 || isDraggingRef.current) {
         const cw = container.clientWidth || 800;
@@ -1158,12 +1319,14 @@ function StampGlobeHero({
     };
   }, [locations]);
 
+  const currentMonth = new Date().getMonth() + 1;
+  const selectedInSeason = selectedLocation?.peakMonths?.includes(currentMonth);
+
   return (
     <div
       ref={canvasWrapRef}
       className="relative w-full h-[500px] sm:h-[600px] lg:h-[650px] overflow-hidden select-none bg-[#050506]"
     >
-      {/* Subtle warm radial vignette behind the 4K Black 3D Globe */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -1172,10 +1335,8 @@ function StampGlobeHero({
         }}
       />
 
-      {/* Three.js Canvas Mount */}
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* Dashed connector lines from exact 3D globe pin to each floating Postage Stamp */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
         {stampCoords.map(
           (s) =>
@@ -1197,7 +1358,6 @@ function StampGlobeHero({
         )}
       </svg>
 
-      {/* Perforated Illustrated Postage Stamps on the 3D Globe (Reference Image 2) */}
       <div className="absolute inset-0 pointer-events-none z-20">
         {stampCoords.map((s) => {
           if (!s.visible) return null;
@@ -1240,7 +1400,6 @@ function StampGlobeHero({
         })}
       </div>
 
-      {/* Centered Instruction Pill at Top of Globe Viewport */}
       <div className="absolute top-5 left-0 right-0 flex items-center justify-center pointer-events-none z-30 px-4">
         <div className="pointer-events-auto inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/75 border border-white/15 backdrop-blur-md text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3] shadow-lg">
           <Globe className="w-3.5 h-3.5" />
@@ -1248,12 +1407,11 @@ function StampGlobeHero({
         </div>
       </div>
 
-      {/* Bottom Selected Stamp Quick-Preview Pill inside Globe Hero */}
       {selectedLocation && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-lg pointer-events-auto">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-xl pointer-events-auto">
           <div className="rounded-2xl bg-[#141416]/90 border border-[#d6c5b3]/30 backdrop-blur-xl px-5 py-3.5 flex items-center justify-between gap-4 shadow-2xl">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/20 shrink-0">
+              <div className="w-11 h-11 rounded-lg overflow-hidden border border-white/20 shrink-0">
                 <img
                   src={selectedLocation.heroImage}
                   alt={selectedLocation.name}
@@ -1261,8 +1419,20 @@ function StampGlobeHero({
                 />
               </div>
               <div className="min-w-0">
-                <div className="font-serif-editorial text-lg sm:text-xl text-white truncate">
-                  {selectedLocation.name}
+                <div className="flex items-center gap-2">
+                  <span className="font-serif-editorial text-lg sm:text-xl text-white truncate">
+                    {selectedLocation.name}
+                  </span>
+                  <span
+                    className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono-tech uppercase tracking-wider border ${
+                      selectedInSeason
+                        ? 'bg-[#9eb393]/15 border-[#9eb393]/40 text-[#9eb393]'
+                        : 'bg-white/10 border-white/20 text-white/70'
+                    }`}
+                  >
+                    <Sun className="w-2.5 h-2.5" />
+                    {selectedInSeason ? 'In Season' : 'Plan Ahead'} • {selectedLocation.climateLabel}
+                  </span>
                 </div>
                 <div className="text-xs text-white/65 truncate">
                   {selectedLocation.subtitle}
@@ -1300,14 +1470,29 @@ export default function App() {
     }
   });
   const [experiences, setExperiences] = useState(INITIAL_EXPERIENCES);
-  const [selectedCategory, setSelectedCategory] = useState('Stay'); // 'Stay' | 'Tour' | 'Trek'
+  const [selectedCategory, setSelectedCategory] = useState('Stay');
   const [activeLocation, setActiveLocation] = useState(DESTINATION_LOCATIONS[0]);
-  const [isCatalogOpen, setIsCatalogOpen] = useState(false); // When true, opens the full category catalog in the Reference Image 2 Spatial 3D Deck
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [catalogLocationFilter, setCatalogLocationFilter] = useState('ALL');
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [savedIds, setSavedIds] = useState([]);
-  const [activeNavSection, setActiveNavSection] = useState('globe');
-  const [activePage, setActivePage] = useState('home'); // 'home' | 'about' | 'contact' | 'terms' | 'privacy' | 'refunds' | 'faq'
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [detailExperience, setDetailExperience] = useState(null);
+  const [detailGalleryIdx, setDetailGalleryIdx] = useState(0);
+  const [detailTab, setDetailTab] = useState('overview');
+  const [currency, setCurrency] = useState('INR');
+  const [toastMessage, setToastMessage] = useState('');
+  const [tripEstimator, setTripEstimator] = useState({
+    checkIn: '',
+    nights: 2,
+    guests: 2
+  });
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1280
+  );
+  const touchStartXRef = useRef(null);
+  const toastTimerRef = useRef(null);
+  const [activePage, setActivePage] = useState('home');
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -1319,9 +1504,8 @@ export default function App() {
   });
   const [contactSubmitted, setContactSubmitted] = useState(false);
 
-  // Host CMS Modal (Cloudflare D1)
   const [hostModalOpen, setHostModalOpen] = useState(false);
-  const [studioTab, setStudioTab] = useState('listings'); // 'listings' | 'pages'
+  const [studioTab, setStudioTab] = useState('listings');
   const [hostPasscode, setHostPasscode] = useState('');
   const [curatorTokenHash, setCuratorTokenHash] = useState('');
   const [authAttempts, setAuthAttempts] = useState(0);
@@ -1343,6 +1527,68 @@ export default function App() {
   });
   const [d1Status, setD1Status] = useState('');
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(''), 2800);
+  };
+
+  const toggleSaveExperience = (item) => {
+    const exists = savedIds.includes(item.id);
+    setSavedIds((prev) =>
+      exists ? prev.filter((id) => id !== item.id) : [...prev, item.id]
+    );
+    showToast(
+      exists
+        ? `Removed "${item.name}" from Saved Voyages`
+        : `Saved "${item.name}" to your Voyage Shortlist`
+    );
+  };
+
+  const openDetailModal = (item) => {
+    setDetailExperience(item);
+    setDetailGalleryIdx(0);
+    setDetailTab('overview');
+  };
+
+  const handleNavigatePage = (pageKey) => {
+    setActivePage(pageKey);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleContactSubmit = (e) => {
+    e.preventDefault();
+    if (contactForm.website_trap) return;
+    setContactSubmitted(true);
+    const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
+    const text = encodeURIComponent(
+      `Hello ${siteContent.businessName} Concierge!\nName: ${sanitizeClientInput(contactForm.name, 80)}\nEmail: ${sanitizeClientInput(contactForm.email, 100)}\nPhone: ${sanitizeClientInput(contactForm.phone, 40)}\nInterest: ${contactForm.category} — ${contactForm.destination}\nMessage: ${sanitizeClientInput(contactForm.message, 400)}`
+    );
+    setTimeout(() => {
+      window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
+    }, 350);
+  };
+
+  const handleSaveSiteContent = (e) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem('opulent_oasis_site_content_v1', JSON.stringify(siteContent));
+      setD1Status('Saved! Your business details and pages are updated live.');
+    } catch {
+      setD1Status('Updated in current session.');
+    }
+  };
+
+  const handleResetSiteContent = () => {
+    setSiteContent(DEFAULT_SITE_CONTENT);
+    try {
+      localStorage.removeItem('opulent_oasis_site_content_v1');
+    } catch {
+      // ignore storage restrictions
+    }
+    setD1Status('Restored default business content.');
+  };
+
   // Ensure Tailwind CSS is loaded
   useEffect(() => {
     const existingScript = document.querySelector('script[src*="tailwindcss"]');
@@ -1354,7 +1600,7 @@ export default function App() {
     }
   }, []);
 
-  // Sync live Cloudflare D1 listings with AbortController & payload validation
+  // Sync live Cloudflare D1 listings
   useEffect(() => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -1409,23 +1655,40 @@ export default function App() {
     };
   }, []);
 
-  // Keyboard navigation (ArrowLeft / ArrowRight / Escape) when Spatial 3D Catalog is open
   useEffect(() => {
-    if (!isCatalogOpen) return;
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isCatalogOpen && !detailExperience && !wishlistOpen) return;
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') setIsCatalogOpen(false);
-      if (e.key === 'ArrowLeft') {
-        setActiveSlideIndex((prev) => Math.max(0, prev - 1));
+      if (e.key === 'Escape') {
+        if (detailExperience) setDetailExperience(null);
+        else if (wishlistOpen) setWishlistOpen(false);
+        else setIsCatalogOpen(false);
       }
-      if (e.key === 'ArrowRight') {
-        setActiveSlideIndex((prev) => prev + 1);
+      if (detailExperience) {
+        if (e.key === 'ArrowLeft') {
+          setDetailGalleryIdx((prev) => (prev + 2) % 3);
+        }
+        if (e.key === 'ArrowRight') {
+          setDetailGalleryIdx((prev) => (prev + 1) % 3);
+        }
+      } else if (isCatalogOpen && !wishlistOpen) {
+        if (e.key === 'ArrowLeft') {
+          setActiveSlideIndex((prev) => Math.max(0, prev - 1));
+        }
+        if (e.key === 'ArrowRight') {
+          setActiveSlideIndex((prev) => prev + 1);
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isCatalogOpen]);
+  }, [isCatalogOpen, detailExperience, wishlistOpen]);
 
-  // Build the complete enriched catalog across all locations and categories
   const fullEnrichedCatalog = useMemo(() => {
     const allItems = [...experiences];
     DESTINATION_LOCATIONS.forEach((loc) => {
@@ -1464,7 +1727,6 @@ export default function App() {
     return allItems;
   }, [experiences]);
 
-  // The 3 Category Windows (1 for Stay, 1 for Tour, 1 for Trek) matching Reference Image 1
   const categoryWindows = useMemo(() => {
     const definitions = [
       {
@@ -1505,7 +1767,6 @@ export default function App() {
     });
   }, [fullEnrichedCatalog]);
 
-  // Reset slide index whenever category or location filter changes
   useEffect(() => {
     setActiveSlideIndex(0);
   }, [selectedCategory, catalogLocationFilter, isCatalogOpen]);
@@ -1534,36 +1795,62 @@ export default function App() {
     );
   };
 
-  const handleNavigatePage = (pageKey) => {
-    setActivePage(pageKey);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const savedExperiences = useMemo(
+    () => fullEnrichedCatalog.filter((item) => savedIds.includes(item.id)),
+    [fullEnrichedCatalog, savedIds]
+  );
+
+  const handleBookWithEstimate = (exp) => {
+    const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
+    const baseUnit = exp.numericPrice || 35000;
+    const multiplier = exp.category === 'Stay' ? tripEstimator.nights : tripEstimator.guests;
+    const estimatedTotal = baseUnit * Math.max(1, multiplier);
+    const formattedTotal = formatConvertedTariff(estimatedTotal, currency);
+    const unitLabel =
+      exp.category === 'Stay'
+        ? `${tripEstimator.nights} Nights`
+        : `${tripEstimator.guests} Explorers`;
+    const dateLine = tripEstimator.checkIn ? `\n• Preferred Date: ${tripEstimator.checkIn}` : '';
+    const text = encodeURIComponent(
+      `Hello ${siteContent.businessName}! I would like to request availability:\n• ${sanitizeClientInput(exp.category, 20)}: ${sanitizeClientInput(exp.name, 120)}\n• Destination: ${sanitizeClientInput(exp.locationName, 80)} (${sanitizeClientInput(exp.country, 50)})${dateLine}\n• Party & Duration: ${tripEstimator.guests} Guests • ${unitLabel}\n• Estimated Tariff (${currency}): ${formattedTotal}\nPlease share curated itinerary & booking link.`
+    );
+    window.open(
+      `https://wa.me/${cleanPhone}?text=${text}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
-  const handleSaveSiteContent = (e) => {
-    e.preventDefault();
+  const handleCopyShortlist = async () => {
+    if (savedExperiences.length === 0) return;
+    const totalInr = savedExperiences.reduce((acc, item) => acc + (item.numericPrice || 35000), 0);
+    const summary = [
+      `${siteContent.businessName} — Saved Voyages Shortlist`,
+      ...savedExperiences.map(
+        (item, idx) =>
+          `${idx + 1}. [${item.category}] ${item.name} — ${item.locationName} (${formatConvertedTariff(item.numericPrice || 35000, currency)})`
+      ),
+      `Combined Base Estimate (${currency}): ${formatConvertedTariff(totalInr, currency)}`
+    ].join('\n');
     try {
-      localStorage.setItem('opulent_oasis_site_content_v1', JSON.stringify(siteContent));
-      setD1Status('Business Info & Mandatory Pages Updated Successfully!');
+      await navigator.clipboard.writeText(summary);
+      showToast('Shortlist copied to clipboard for sharing!');
     } catch {
-      setD1Status('Saved to Active Session!');
+      showToast('Shortlist ready — send via Concierge below.');
     }
   };
 
-  const handleResetSiteContent = () => {
-    setSiteContent(DEFAULT_SITE_CONTENT);
-    try {
-      localStorage.removeItem('opulent_oasis_site_content_v1');
-    } catch {}
-    setD1Status('Restored Default Business Content.');
-  };
-
-  const handleContactSubmit = (e) => {
-    e.preventDefault();
-    if (contactForm.website_trap) return;
-    setContactSubmitted(true);
+  const handleSendWishlistToConcierge = () => {
+    if (savedExperiences.length === 0) return;
     const cleanPhone = (siteContent.whatsappNumber || '919820000000').replace(/\D/g, '');
+    const lines = savedExperiences
+      .map(
+        (item, idx) =>
+          `${idx + 1}. [${item.category}] ${item.name} — ${item.locationName} (${item.price})`
+      )
+      .join('\n');
     const text = encodeURIComponent(
-      `Hello ${siteContent.businessName} Concierge!\n• Name: ${sanitizeClientInput(contactForm.name, 80)}\n• Email: ${sanitizeClientInput(contactForm.email, 100)}\n• Phone: ${sanitizeClientInput(contactForm.phone, 40)}\n• Interest: ${sanitizeClientInput(contactForm.category, 20)} in ${sanitizeClientInput(contactForm.destination, 60)}\n• Message: ${sanitizeClientInput(contactForm.message, 400)}`
+      `Hello ${siteContent.businessName} Concierge! Here is my curated Saved Voyages shortlist:\n\n${lines}\n\nPlease help me plan a bespoke itinerary around these selections.`
     );
     window.open(
       `https://wa.me/${cleanPhone}?text=${text}`,
@@ -1609,6 +1896,7 @@ export default function App() {
       name: sanitizeClientInput(newExp.name, 140),
       subtitle: sanitizeClientInput(newExp.subtitle || locObj.subtitle, 120),
       price: sanitizeClientInput(newExp.price, 50),
+      numericPrice: Number(String(newExp.price).replace(/[^0-9]/g, '')) || 45000,
       duration: sanitizeClientInput(newExp.duration, 50),
       groupSize: sanitizeClientInput(newExp.groupSize, 50),
       image:
@@ -1644,18 +1932,14 @@ export default function App() {
     <div className="min-h-screen w-full bg-[#070708] text-[#f4efe6] font-sans-clean p-2 sm:p-5 lg:p-8 selection:bg-[#d6c5b3] selection:text-[#09090b]">
       <style>{EDITORIAL_STAMP_CSS}</style>
 
-      {/* =======================================================================
-          OUTER ARCHITECTURAL MATTE POSTER FRAME (REFERENCE IMAGE 1 AESTHETIC)
-      ======================================================================= */}
+      {/* OUTER ARCHITECTURAL MATTE POSTER FRAME */}
       <div className="mx-auto max-w-[1440px] bg-[#18181a] matte-frame-grain border border-white/15 rounded-[6px] shadow-[0_30px_100px_rgba(0,0,0,0.95)] relative overflow-hidden">
         {/* LEFT & RIGHT VERTICAL RULER TICK MARKS */}
         <div className="hidden sm:flex flex-col justify-between items-start absolute left-2.5 top-28 bottom-28 w-3 pointer-events-none z-30 opacity-45">
           {Array.from({ length: 36 }).map((_, i) => (
             <span
               key={i}
-              className={`block h-[1px] bg-[#f4efe6] ${
-                i % 5 === 0 ? 'w-3' : 'w-1.5'
-              }`}
+              className={`block h-[1px] bg-[#f4efe6] ${i % 5 === 0 ? 'w-3' : 'w-1.5'}`}
             />
           ))}
         </div>
@@ -1663,16 +1947,12 @@ export default function App() {
           {Array.from({ length: 36 }).map((_, i) => (
             <span
               key={i}
-              className={`block h-[1px] bg-[#f4efe6] ${
-                i % 5 === 0 ? 'w-3' : 'w-1.5'
-              }`}
+              className={`block h-[1px] bg-[#f4efe6] ${i % 5 === 0 ? 'w-3' : 'w-1.5'}`}
             />
           ))}
         </div>
 
-        {/* ===================================================================
-            1. TOP EDITORIAL HEADER BAR
-        =================================================================== */}
+        {/* 1. TOP EDITORIAL HEADER BAR */}
         <header className="relative z-30 px-4 sm:px-10 pt-5 pb-4 bg-[#18181a] border-b border-white/10">
           <div className="flex items-center justify-between text-[#f4efe6]/75">
             <div className="flex items-center">
@@ -1688,6 +1968,7 @@ export default function App() {
               onClick={() => setHostModalOpen(true)}
               className="inline-flex items-center gap-1 hover:text-[#d6c5b3] transition"
               title="Open Curator D1 Studio"
+              aria-label="Open Curator Studio"
             >
               <span className="w-3 h-3 rounded-full bg-[#f4efe6] inline-block" />
               <span className="w-3 h-3 rounded-full border border-[#f4efe6] -ml-1.5 inline-block" />
@@ -1752,9 +2033,7 @@ export default function App() {
 
         {activePage === 'home' ? (
           <>
-            {/* ===================================================================
-                2. 4K 3D BLACK GLOBE HERO WITH PERFORATED POSTAGE STAMPS
-            =================================================================== */}
+            {/* 2. 4K 3D BLACK GLOBE HERO WITH PERFORATED POSTAGE STAMPS */}
             <section
               id="globe-hero-section"
               className="relative mx-2 sm:mx-8 my-2 rounded-[18px] overflow-hidden border border-white/15 shadow-2xl"
@@ -1766,16 +2045,13 @@ export default function App() {
                   setActiveLocation(loc);
                   handleOpenCategoryCatalog(selectedCategory, loc.id);
                 }}
-                activeCategory={selectedCategory}
                 onScrollToExplorer={(loc) =>
                   handleOpenCategoryCatalog(selectedCategory, loc.id)
                 }
               />
             </section>
 
-            {/* ===================================================================
-                3. MIDDLE ARCHITECTURAL DIVIDER & "START YOUR VOYAGE"
-            =================================================================== */}
+            {/* 3. MIDDLE ARCHITECTURAL DIVIDER & "START YOUR VOYAGE" */}
             <div className="relative z-20 px-4 sm:px-12 py-6 bg-[#18181a] border-t border-white/10">
               <div className="flex items-center justify-between max-w-4xl mx-auto">
                 <div className="inline-flex items-center">
@@ -1794,14 +2070,11 @@ export default function App() {
               </div>
             </div>
 
-            {/* ===================================================================
-                4. "CHOOSE A DESTINATION" TOGGLER & 3 CATEGORY WINDOWS
-            =================================================================== */}
+            {/* 4. "CHOOSE A DESTINATION" TOGGLER & 3 CATEGORY WINDOWS */}
             <section
               id="destination-toggler-section"
               className="relative px-4 sm:px-10 pt-10 pb-20 border-t border-white/10 overflow-hidden min-h-[760px] flex flex-col justify-center"
             >
-              {/* Blurred Atmospheric Background */}
               <div
                 className="absolute inset-0 opacity-35 pointer-events-none transition-all duration-700"
                 style={{
@@ -1816,13 +2089,11 @@ export default function App() {
               />
 
               <div className="relative z-10 max-w-6xl mx-auto w-full space-y-10">
-                {/* Heading & Glassmorphic 3-Option Pill Toggler (Reference Image 1) */}
                 <div className="text-center space-y-6">
                   <h2 className="font-sans-clean font-bold text-3xl sm:text-5xl tracking-tight text-white">
                     Choose a Destination
                   </h2>
 
-                  {/* Reference Image 1 Pill Toggler: Stay | Tour | Trek */}
                   <div className="mx-auto max-w-xl rounded-full p-1 border border-white/60 bg-black/25 backdrop-blur-2xl grid grid-cols-3 items-center shadow-2xl">
                     {['Stay', 'Tour', 'Trek'].map((option) => {
                       const isActive = selectedCategory === option;
@@ -1847,7 +2118,7 @@ export default function App() {
                 </div>
 
                 {!isCatalogOpen ? (
-                  <div className="space-y-8">
+                  <div className="space-y-8 animate-editorial-in">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-center pt-4">
                       {categoryWindows.map((win) => {
                         const isActiveCard = selectedCategory === win.category;
@@ -1857,7 +2128,7 @@ export default function App() {
                             onClick={() =>
                               handleOpenCategoryCatalog(win.category, 'ALL')
                             }
-                            className={`group cursor-pointer relative rounded-[28px] overflow-hidden border transition-all duration-500 aspect-[3/4.15] flex flex-col justify-between p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.75)] ${
+                            className={`card-sheen group cursor-pointer relative rounded-[28px] overflow-hidden border transition-all duration-500 aspect-[3/4.15] flex flex-col justify-between p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.75)] ${
                               isActiveCard
                                 ? 'border-white/80 md:scale-[1.06] z-20'
                                 : 'border-white/30 opacity-85 hover:opacity-100 hover:border-white/60 hover:-translate-y-1.5'
@@ -1946,13 +2217,15 @@ export default function App() {
                     };
 
                     return (
-                      <div className="relative pt-2 pb-4 flex flex-col items-center space-y-7 select-none">
+                      <div className="relative pt-2 pb-4 flex flex-col items-center space-y-7 select-none animate-editorial-in">
+                        {/* Top Spatial Frosted Glass Bar */}
                         <div className="w-full max-w-3xl rounded-full px-3 sm:px-5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.45)] flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <button
                               onClick={() => setIsCatalogOpen(false)}
                               className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                              title="Back to 3 Category Windows"
+                              title="Back to 3 Windows"
+                              aria-label="Back to 3 Category Windows"
                             >
                               <ArrowLeft className="w-4 h-4" />
                             </button>
@@ -1960,6 +2233,7 @@ export default function App() {
                               onClick={handlePrevSlide}
                               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
                               title="Previous in Catalog"
+                              aria-label="Previous option"
                             >
                               <ChevronLeft className="w-4 h-4" />
                             </button>
@@ -1967,6 +2241,7 @@ export default function App() {
                               onClick={handleNextSlide}
                               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
                               title="Next in Catalog"
+                              aria-label="Next option"
                             >
                               <ChevronRight className="w-4 h-4" />
                             </button>
@@ -1981,9 +2256,29 @@ export default function App() {
 
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <button
-                              onClick={() => handleWhatsAppReserve(currentSlide)}
+                              onClick={() => setWishlistOpen(true)}
+                              className="relative w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
+                              title="Open Saved Voyages Shortlist"
+                              aria-label="Open Saved Voyages Shortlist"
+                            >
+                              <Heart
+                                className={`w-4 h-4 ${
+                                  savedIds.length > 0
+                                    ? 'fill-[#e63946] text-[#e63946]'
+                                    : ''
+                                }`}
+                              />
+                              {savedIds.length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#f6eedc] text-[#09090b] text-[9px] font-bold flex items-center justify-center">
+                                  {savedIds.length}
+                                </span>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openDetailModal(currentSlide)}
                               className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
-                              title="Reserve This Option"
+                              title="View Full Itinerary & Estimate"
+                              aria-label="View Full Itinerary & Estimate"
                             >
                               <Plus className="w-4 h-4" />
                             </button>
@@ -1991,35 +2286,46 @@ export default function App() {
                               onClick={() => setIsCatalogOpen(false)}
                               className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center text-white transition"
                               title="Close Catalog"
+                              aria-label="Close Catalog"
                             >
                               <X className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
 
-                        <div className="relative w-full max-w-5xl h-[430px] sm:h-[470px] flex items-center justify-center">
+                        {/* Spatial 3D Fanned Card Deck with Native Touch-Swipe */}
+                        <div
+                          className="relative w-full max-w-5xl h-[430px] sm:h-[470px] flex items-center justify-center touch-pan-y"
+                          onTouchStart={(e) => {
+                            touchStartXRef.current = e.touches[0].clientX;
+                          }}
+                          onTouchEnd={(e) => {
+                            if (touchStartXRef.current === null) return;
+                            const deltaX =
+                              e.changedTouches[0].clientX - touchStartXRef.current;
+                            touchStartXRef.current = null;
+                            if (deltaX > 45) handlePrevSlide();
+                            if (deltaX < -45) handleNextSlide();
+                          }}
+                        >
                           <div className="hidden md:flex flex-col items-center gap-3 p-2 rounded-full bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-2xl absolute left-2 lg:left-6 z-30">
                             <button
-                              onClick={() => handleWhatsAppReserve(currentSlide)}
+                              onClick={() => openDetailModal(currentSlide)}
                               className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 flex items-center justify-center text-white transition"
-                              title="Inquire via Concierge"
+                              title="Inspect Details & Price Estimator"
+                              aria-label="Inspect Details & Price Estimator"
                             >
-                              <ArrowUpRight className="w-4 h-4" />
+                              <Info className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() =>
-                                setSavedIds((prev) =>
-                                  prev.includes(currentSlide.id)
-                                    ? prev.filter((id) => id !== currentSlide.id)
-                                    : [...prev, currentSlide.id]
-                                )
-                              }
+                              onClick={() => toggleSaveExperience(currentSlide)}
                               className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
                                 savedIds.includes(currentSlide.id)
                                   ? 'bg-[#e63946] text-white'
                                   : 'bg-white/10 hover:bg-white/25 text-white'
                               }`}
                               title="Save to Wishlist"
+                              aria-label="Save to Wishlist"
                             >
                               <Star className="w-4 h-4" />
                             </button>
@@ -2027,6 +2333,7 @@ export default function App() {
                               onClick={() => setIsCatalogOpen(false)}
                               className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition"
                               title="Back to 3 Windows"
+                              aria-label="Back to 3 Windows"
                             >
                               <Compass className="w-4 h-4" />
                             </button>
@@ -2040,7 +2347,13 @@ export default function App() {
                               const item = slides[slideIdx];
                               const isCenter = offset === 0;
 
-                              const translateX = offset * 105;
+                              const spreadPx =
+                                viewportWidth < 640
+                                  ? 42
+                                  : viewportWidth < 1024
+                                  ? 76
+                                  : 105;
+                              const translateX = offset * spreadPx;
                               const scale =
                                 offset === 0
                                   ? 1
@@ -2080,28 +2393,41 @@ export default function App() {
                                   />
 
                                   {isCenter && (
-                                    <div className="relative z-20 p-4 sm:p-5 flex items-center justify-between">
+                                    <div className="relative z-20 p-4 flex items-center justify-between">
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setIsCatalogOpen(false);
+                                          handlePrevSlide();
                                         }}
                                         className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
-                                        title="Back to 3 Category Windows"
+                                        title="Previous in Catalog"
+                                        aria-label="Previous in Catalog"
                                       >
                                         <ChevronLeft className="w-4 h-4" />
                                       </button>
 
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleWhatsAppReserve(item);
-                                        }}
-                                        className="px-4 py-1.5 rounded-full bg-black/40 hover:bg-white hover:text-black border border-white/30 backdrop-blur-md text-xs font-sans-clean font-semibold text-white transition inline-flex items-center gap-1.5 shadow-lg"
-                                      >
-                                        <ArrowUpRight className="w-3.5 h-3.5" />
-                                        <span>Book {item.category}</span>
-                                      </button>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openDetailModal(item);
+                                          }}
+                                          className="px-3.5 py-1.5 rounded-full bg-black/50 hover:bg-white/25 border border-white/30 backdrop-blur-md text-xs font-sans-clean font-semibold text-white transition inline-flex items-center gap-1.5 shadow-lg"
+                                        >
+                                          <Info className="w-3.5 h-3.5" />
+                                          <span>Details &amp; Estimate</span>
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleWhatsAppReserve(item);
+                                          }}
+                                          className="px-3.5 py-1.5 rounded-full bg-[#f6eedc] hover:bg-[#d6c5b3] text-[#09090b] text-xs font-sans-clean font-bold transition inline-flex items-center gap-1 shadow-lg"
+                                        >
+                                          <ArrowUpRight className="w-3.5 h-3.5" />
+                                          <span>Book</span>
+                                        </button>
+                                      </div>
 
                                       <button
                                         onClick={(e) => {
@@ -2110,6 +2436,7 @@ export default function App() {
                                         }}
                                         className="w-9 h-9 rounded-full bg-black/35 hover:bg-black/55 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
                                         title="Next in Catalog"
+                                        aria-label="Next in Catalog"
                                       >
                                         <ChevronRight className="w-4 h-4" />
                                       </button>
@@ -2151,6 +2478,7 @@ export default function App() {
                           </div>
                         </div>
 
+                        {/* Bottom Spatial Location Switcher Pill */}
                         <div className="flex flex-col items-center space-y-3">
                           <div className="rounded-full px-3.5 py-2.5 bg-white/[0.14] border border-white/30 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 sm:gap-5">
                             <button
@@ -2228,10 +2556,8 @@ export default function App() {
             </section>
           </>
         ) : (
-          /* ===================================================================
-             MANDATORY PAGES VIEW (ABOUT, CONTACT, FAQ, REFUNDS, TERMS, PRIVACY)
-          =================================================================== */
-          <section className="px-4 sm:px-12 py-12 sm:py-16 min-h-[680px]">
+          /* MANDATORY PAGES VIEW (ABOUT, CONTACT, FAQ, REFUNDS, TERMS, PRIVACY) */
+          <section className="px-4 sm:px-12 py-12 sm:py-16 min-h-[680px] animate-editorial-in">
             <div className="max-w-4xl mx-auto space-y-8">
               <button
                 type="button"
@@ -2245,7 +2571,7 @@ export default function App() {
               {activePage === 'about' && (
                 <div className="space-y-6 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10">
                   <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
-                    OUR STORY & MANIFESTO
+                    OUR STORY &amp; MANIFESTO
                   </span>
                   <h2 className="font-script text-5xl sm:text-6xl text-[#f4efe6]">
                     {siteContent.aboutTitle}
@@ -2422,7 +2748,7 @@ export default function App() {
                     BOOKING ASSURANCE
                   </span>
                   <h2 className="font-script text-5xl text-[#f4efe6]">
-                    Cancellation & Refund Policy
+                    Cancellation &amp; Refund Policy
                   </h2>
                   <p className="whitespace-pre-line">{siteContent.refundPolicy1}</p>
                   <p className="whitespace-pre-line">{siteContent.refundPolicy2}</p>
@@ -2436,7 +2762,7 @@ export default function App() {
                     LEGAL GOVERNANCE
                   </span>
                   <h2 className="font-script text-5xl text-[#f4efe6]">
-                    Terms & Conditions
+                    Terms &amp; Conditions
                   </h2>
                   <p className="whitespace-pre-line">{siteContent.termsParagraph1}</p>
                   <p className="whitespace-pre-line">{siteContent.termsParagraph2}</p>
@@ -2446,7 +2772,7 @@ export default function App() {
               {activePage === 'privacy' && (
                 <div className="space-y-5 bg-black/35 border border-white/15 rounded-[28px] p-6 sm:p-10 text-xs sm:text-sm text-white/80 leading-relaxed">
                   <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
-                    DATA PROTECTION & DPDP COMPLIANCE
+                    DATA PROTECTION &amp; DPDP COMPLIANCE
                   </span>
                   <h2 className="font-script text-5xl text-[#f4efe6]">
                     Privacy Policy
@@ -2477,10 +2803,10 @@ export default function App() {
               FAQs
             </button>
             <button onClick={() => handleNavigatePage('refunds')} className="hover:text-[#d6c5b3] transition">
-              Cancellation & Refunds
+              Cancellation &amp; Refunds
             </button>
             <button onClick={() => handleNavigatePage('terms')} className="hover:text-[#d6c5b3] transition">
-              Terms & Conditions
+              Terms &amp; Conditions
             </button>
             <button onClick={() => handleNavigatePage('privacy')} className="hover:text-[#d6c5b3] transition">
               Privacy Policy
@@ -2494,29 +2820,548 @@ export default function App() {
         </footer>
       </div>
 
-      {/* =======================================================================
-          CURATOR HOST STUDIO (CLOUDFLARE D1 EDGE DATABASE + BUSINESS PAGE CMS)
-      ======================================================================= */}
+      {/* TOAST FEEDBACK PILL */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-2.5 rounded-full bg-[#18181a]/95 border border-[#d6c5b3]/50 backdrop-blur-xl text-xs font-sans-clean text-[#f6eedc] shadow-2xl flex items-center gap-2 animate-editorial-in">
+          <Sparkles className="w-3.5 h-3.5 text-[#d6c5b3]" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* FLOATING SAVED VOYAGES SHORTLIST BUTTON */}
+      {savedIds.length > 0 && !wishlistOpen && (
+        <button
+          type="button"
+          onClick={() => setWishlistOpen(true)}
+          className="fixed bottom-6 right-6 z-40 px-4 py-3 rounded-full bg-[#18181a]/95 border border-[#d6c5b3]/50 backdrop-blur-xl text-[#f4efe6] shadow-[0_18px_50px_rgba(0,0,0,0.85)] hover:bg-[#f6eedc] hover:text-[#09090b] transition inline-flex items-center gap-2.5 text-xs font-mono-tech uppercase tracking-wider"
+        >
+          <Heart className="w-4 h-4 fill-[#e63946] text-[#e63946]" />
+          <span>Saved Voyages ({savedIds.length})</span>
+        </button>
+      )}
+
+      {/* EXPERIENCE DETAIL, MULTI-IMAGE GALLERY, SAMPLE ITINERARY & LIVE TRIP ESTIMATOR MODAL */}
+      {detailExperience && (() => {
+        const meta = getExperienceTravelMeta(detailExperience);
+        const unitPrice = detailExperience.numericPrice || 35000;
+        const factor =
+          detailExperience.category === 'Stay'
+            ? tripEstimator.nights
+            : tripEstimator.guests;
+        const estimatedTotal = unitPrice * Math.max(1, factor);
+        const isSaved = savedIds.includes(detailExperience.id);
+        const activePhoto = meta.gallery[detailGalleryIdx] || meta.gallery[0];
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md"
+            onClick={() => setDetailExperience(null)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-[28px] bg-[#161619] border border-white/20 text-[#f4efe6] shadow-[0_30px_100px_rgba(0,0,0,0.9)] animate-editorial-in"
+            >
+              {/* Multi-Image Editorial Gallery Header */}
+              <div className="relative h-64 sm:h-80 w-full overflow-hidden">
+                <img
+                  src={activePhoto.url}
+                  alt={detailExperience.name}
+                  className="w-full h-full object-cover transition-all duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#161619] via-black/30 to-black/45" />
+
+                <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-2 z-20">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-black/60 border border-white/20 backdrop-blur-md text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                      {detailExperience.category} • {detailExperience.locationName}
+                    </span>
+                    <span
+                      className={`px-2.5 py-1 rounded-full border backdrop-blur-md text-[10px] font-mono-tech uppercase tracking-wider inline-flex items-center gap-1 ${
+                        meta.inSeasonNow
+                          ? 'bg-[#9eb393]/20 border-[#9eb393]/45 text-[#d9ead3]'
+                          : 'bg-black/55 border-white/20 text-white/80'
+                      }`}
+                    >
+                      <Sun className="w-3 h-3" />
+                      <span>
+                        {meta.inSeasonNow ? 'In Season Now' : 'Plan Ahead'} • {meta.climateLabel}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => toggleSaveExperience(detailExperience)}
+                      className={`w-9 h-9 rounded-full border backdrop-blur-md flex items-center justify-center transition ${
+                        isSaved
+                          ? 'bg-[#e63946] border-[#e63946] text-white'
+                          : 'bg-black/55 border-white/25 text-white hover:bg-white/20'
+                      }`}
+                      aria-label={isSaved ? 'Remove from Saved Voyages' : 'Save to Voyages'}
+                    >
+                      <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailExperience(null)}
+                      className="w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                      aria-label="Close Details Modal"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Gallery Navigation Arrows */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDetailGalleryIdx((prev) => (prev - 1 + meta.gallery.length) % meta.gallery.length)
+                  }
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/45 hover:bg-black/75 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                  aria-label="Previous gallery photo"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDetailGalleryIdx((prev) => (prev + 1) % meta.gallery.length)
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/45 hover:bg-black/75 border border-white/25 backdrop-blur-md flex items-center justify-center text-white transition"
+                  aria-label="Next gallery photo"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {/* Gallery Thumbnails Strip */}
+                <div className="absolute bottom-4 left-6 right-6 z-20 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/50 border border-white/15 backdrop-blur-md text-[10px] font-mono-tech text-[#d6c5b3] mb-1.5">
+                      <span>{activePhoto.label}</span>
+                      <span className="opacity-60">•</span>
+                      <span>
+                        {detailGalleryIdx + 1}/{meta.gallery.length}
+                      </span>
+                    </div>
+                    <h3 className="font-serif-editorial text-3xl sm:text-4xl text-white leading-tight">
+                      {detailExperience.name}
+                    </h3>
+                    <p className="text-xs text-white/75 mt-1">
+                      {detailExperience.subtitle} • {detailExperience.country} • ★ {detailExperience.rating}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {meta.gallery.map((g, gIdx) => (
+                      <button
+                        key={g.label}
+                        type="button"
+                        onClick={() => setDetailGalleryIdx(gIdx)}
+                        className={`relative w-12 h-9 rounded-lg overflow-hidden border transition ${
+                          detailGalleryIdx === gIdx
+                            ? 'border-[#f6eedc] ring-2 ring-[#d6c5b3]/60 scale-105'
+                            : 'border-white/30 opacity-70 hover:opacity-100'
+                        }`}
+                        title={g.label}
+                        aria-label={`View ${g.label}`}
+                      >
+                        <img src={g.url} alt={g.label} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 sm:p-8 space-y-6">
+                {/* Editorial Overview / Sample Itinerary Switcher */}
+                <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
+                  <div className="inline-flex items-center gap-2 p-1 rounded-full bg-white/[0.05] border border-white/10 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setDetailTab('overview')}
+                      className={`px-4 py-1.5 rounded-full font-semibold transition ${
+                        detailTab === 'overview'
+                          ? 'bg-[#f6eedc] text-[#09090b]'
+                          : 'text-white/70 hover:text-white'
+                      }`}
+                    >
+                      Overview &amp; Inclusions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailTab('itinerary')}
+                      className={`px-4 py-1.5 rounded-full font-semibold transition ${
+                        detailTab === 'itinerary'
+                          ? 'bg-[#f6eedc] text-[#09090b]'
+                          : 'text-white/70 hover:text-white'
+                      }`}
+                    >
+                      Curated Itinerary
+                    </button>
+                  </div>
+                  <div className="font-mono-tech text-xs sm:text-sm font-bold text-[#d6c5b3]">
+                    {detailExperience.price}
+                  </div>
+                </div>
+
+                {detailTab === 'overview' ? (
+                  <div className="space-y-6">
+                    <p className="text-sm text-white/85 leading-relaxed">
+                      {detailExperience.description}
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
+                        <div className="text-[10px] font-mono-tech uppercase text-[#d6c5b3] flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Best Season</span>
+                        </div>
+                        <div className="text-white/90 font-medium">{meta.bestSeason}</div>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
+                        <div className="text-[10px] font-mono-tech uppercase text-[#d6c5b3] flex items-center gap-1.5">
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>Private Transfer</span>
+                        </div>
+                        <div className="text-white/90 font-medium">{meta.transfer}</div>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
+                        <div className="text-[10px] font-mono-tech uppercase text-[#d6c5b3] flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Duration &amp; Party</span>
+                        </div>
+                        <div className="text-white/90 font-medium">
+                          {detailExperience.duration} • {detailExperience.groupSize}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                        CURATED INCLUSIONS
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-white/85">
+                        {meta.inclusions.map((inc, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/10"
+                          >
+                            <Check className="w-4 h-4 text-[#9eb393] shrink-0 mt-0.5" />
+                            <span>{inc}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {meta.itinerary.map((step, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex flex-col sm:flex-row gap-3 sm:gap-5"
+                      >
+                        <div className="font-mono-tech text-xs uppercase tracking-widest text-[#d6c5b3] shrink-0 sm:w-20 pt-0.5">
+                          {step.day}
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-serif-editorial text-xl text-white">
+                            {step.title}
+                          </h4>
+                          <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
+                            {step.detail}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Interactive Live Trip Estimator */}
+                <div className="p-5 rounded-2xl bg-black/45 border border-[#d6c5b3]/30 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                      LIVE TARIFF ESTIMATOR
+                    </span>
+                    <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-white/[0.06] border border-white/15">
+                      {Object.keys(CURRENCY_CONFIG).map((code) => (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => setCurrency(code)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-mono-tech transition ${
+                            currency === code
+                              ? 'bg-[#f6eedc] text-[#09090b] font-bold'
+                              : 'text-white/70 hover:text-white'
+                          }`}
+                        >
+                          {code}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-white/60 mb-1">
+                        Preferred Date
+                      </label>
+                      <input
+                        type="date"
+                        value={tripEstimator.checkIn}
+                        onChange={(e) =>
+                          setTripEstimator({ ...tripEstimator, checkIn: e.target.value })
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/15 text-white text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-white/60 mb-1">
+                        {detailExperience.category === 'Stay' ? 'Nights' : 'Days / Sessions'}
+                      </label>
+                      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/15">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTripEstimator((prev) => ({
+                              ...prev,
+                              nights: Math.max(1, prev.nights - 1)
+                            }))
+                          }
+                          className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+                          aria-label="Decrease nights"
+                        >
+                          -
+                        </button>
+                        <span className="font-mono-tech font-bold text-white">
+                          {tripEstimator.nights}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTripEstimator((prev) => ({
+                              ...prev,
+                              nights: Math.min(21, prev.nights + 1)
+                            }))
+                          }
+                          className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+                          aria-label="Increase nights"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-mono-tech uppercase text-white/60 mb-1">
+                        Guests / Explorers
+                      </label>
+                      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/15">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTripEstimator((prev) => ({
+                              ...prev,
+                              guests: Math.max(1, prev.guests - 1)
+                            }))
+                          }
+                          className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+                          aria-label="Decrease guests"
+                        >
+                          -
+                        </button>
+                        <span className="font-mono-tech font-bold text-white">
+                          {tripEstimator.guests}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTripEstimator((prev) => ({
+                              ...prev,
+                              guests: Math.min(16, prev.guests + 1)
+                            }))
+                          }
+                          className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+                          aria-label="Increase guests"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] font-mono-tech uppercase text-white/60">
+                        Estimated Sanctuary Total ({currency})
+                      </div>
+                      <div className="font-serif-editorial text-3xl text-[#f6eedc]">
+                        {formatConvertedTariff(estimatedTotal, currency)}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleBookWithEstimate(detailExperience)}
+                      className="px-6 py-3.5 rounded-full bg-[#f6eedc] hover:bg-[#d6c5b3] text-[#09090b] font-bold text-xs uppercase tracking-widest transition inline-flex items-center justify-center gap-2 shadow-xl"
+                    >
+                      <span>Request Availability via Concierge</span>
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* SAVED VOYAGES (WISHLIST) SLIDE-OVER DRAWER */}
+      {wishlistOpen && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-sm"
+          onClick={() => setWishlistOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md h-full bg-[#141417] border-l border-white/15 p-6 flex flex-col justify-between shadow-2xl"
+          >
+            <div className="space-y-5 overflow-y-auto pr-1">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <span className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
+                    YOUR CURATED SHORTLIST
+                  </span>
+                  <h3 className="font-serif-editorial text-3xl text-white">
+                    Saved Voyages ({savedExperiences.length})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWishlistOpen(false)}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
+                  aria-label="Close Saved Voyages"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {savedExperiences.length === 0 ? (
+                <div className="py-16 text-center space-y-3 text-white/65">
+                  <Heart className="w-8 h-8 mx-auto opacity-40" />
+                  <p className="text-sm">No saved Stays, Tours, or Treks yet.</p>
+                  <p className="text-xs text-white/45">
+                    Tap the Star or Heart icon on any catalog card to build your multi-stop itinerary.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedExperiences.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center gap-3.5"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/15"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-mono-tech uppercase text-[#d6c5b3]">
+                          {item.category} • {item.locationName}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWishlistOpen(false);
+                            openDetailModal(item);
+                          }}
+                          className="text-left font-sans-clean font-bold text-xs sm:text-sm text-white hover:text-[#d6c5b3] truncate block w-full"
+                        >
+                          {item.name}
+                        </button>
+                        <div className="text-[11px] text-white/65 mt-0.5">{item.price}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleSaveExperience(item)}
+                        className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-[#e63946] transition"
+                        aria-label={`Remove ${item.name}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {savedExperiences.length > 0 && (
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-mono-tech uppercase text-white/55">
+                      {new Set(savedExperiences.map((i) => i.locationName)).size} Destination(s) • Base Estimate ({currency})
+                    </div>
+                    <div className="font-serif-editorial text-2xl text-[#f6eedc]">
+                      {formatConvertedTariff(
+                        savedExperiences.reduce(
+                          (sum, item) => sum + (item.numericPrice || 35000),
+                          0
+                        ),
+                        currency
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyShortlist}
+                    className="px-3 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono-tech uppercase inline-flex items-center gap-1.5 transition"
+                    title="Copy Shortlist to Clipboard"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendWishlistToConcierge}
+                  className="w-full py-3.5 rounded-full bg-[#f6eedc] hover:bg-[#d6c5b3] text-[#09090b] font-bold text-xs uppercase tracking-widest transition inline-flex items-center justify-center gap-2"
+                >
+                  <span>Send Full Shortlist to Concierge</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSavedIds([])}
+                  className="w-full py-2 text-[11px] font-mono-tech uppercase text-white/50 hover:text-white transition"
+                >
+                  Clear All Saved Items
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* CURATOR HOST STUDIO */}
       {hostModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[28px] bg-[#161619] border border-white/20 p-6 sm:p-7 text-[#f4efe6] space-y-5">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <span className="text-[10px] font-mono-tech uppercase tracking-widest text-[#d6c5b3]">
-                  CURATOR & BUSINESS CMS STUDIO
+                  CURATOR &amp; BUSINESS CMS STUDIO
                 </span>
-                <h3 className="font-serif-editorial text-3xl">Manage Listings & Pages</h3>
+                <h3 className="font-serif-editorial text-3xl">Manage Listings &amp; Pages</h3>
               </div>
-              <button onClick={() => setHostModalOpen(false)}>
+              <button onClick={() => setHostModalOpen(false)} aria-label="Close Curator Studio">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {!isHostAuthenticated ? (
-              <form
-                onSubmit={handleCuratorLogin}
-                className="space-y-4 text-xs"
-              >
+              <form onSubmit={handleCuratorLogin} className="space-y-4 text-xs">
                 <p className="text-white/70">
                   Enter curator passcode (<code className="text-[#d6c5b3]">oasis2026</code>) verified via Web Crypto SHA-256 to publish listings or customize your business pages.
                 </p>
@@ -2529,9 +3374,7 @@ export default function App() {
                   className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20"
                 />
                 {authError && (
-                  <p className="text-[#e63946] font-mono-tech text-[11px]">
-                    {authError}
-                  </p>
+                  <p className="text-[#e63946] font-mono-tech text-[11px]">{authError}</p>
                 )}
                 <button
                   type="submit"
@@ -2569,7 +3412,7 @@ export default function App() {
                         : 'text-white/70 hover:text-white'
                     }`}
                   >
-                    2. Edit Business & Pages
+                    2. Edit Business &amp; Pages
                   </button>
                 </div>
 
@@ -2660,7 +3503,7 @@ export default function App() {
                       type="submit"
                       className="w-full py-3 rounded-full bg-[#f6eedc] text-[#09090b] font-bold uppercase tracking-wider"
                     >
-                      Publish to Location Window & D1
+                      Publish to Location Window &amp; D1
                     </button>
                   </form>
                 ) : (
@@ -2753,7 +3596,7 @@ export default function App() {
 
                     <div>
                       <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
-                        Cancellation & Refund Policy
+                        Cancellation &amp; Refund Policy
                       </label>
                       <textarea
                         rows={2}
@@ -2767,7 +3610,7 @@ export default function App() {
 
                     <div>
                       <label className="block text-[10px] font-mono-tech uppercase text-[#d6c5b3] mb-1">
-                        Terms & Conditions
+                        Terms &amp; Conditions
                       </label>
                       <textarea
                         rows={2}
