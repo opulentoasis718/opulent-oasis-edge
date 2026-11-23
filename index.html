@@ -68,6 +68,68 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Pinyon+Script&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Omnichannel Analytics Loader (Replace IDs when ready — safe zero-error fallback) -->
+    <script>
+      window.OPULENT_ANALYTICS_CONFIG = {
+        metaPixelId: '', // e.g. '123456789012345'
+        ga4MeasurementId: '', // e.g. 'G-XXXXXXXXXX'
+        clarityProjectId: '' // e.g. 'abcdefghij'
+      };
+
+      (function initOmnichannelTrackers() {
+        var cfg = window.OPULENT_ANALYTICS_CONFIG || {};
+
+        if (cfg.metaPixelId) {
+          !(function (f, b, e, v, n, t, s) {
+            if (f.fbq) return;
+            n = f.fbq = function () {
+              n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+            };
+            if (!f._fbq) f._fbq = n;
+            n.push = n;
+            n.loaded = !0;
+            n.version = '2.0';
+            n.queue = [];
+            t = b.createElement(e);
+            t.async = !0;
+            t.src = v;
+            s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s);
+          })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+          window.fbq('init', cfg.metaPixelId);
+          window.fbq('track', 'PageView');
+        }
+
+        if (cfg.ga4MeasurementId) {
+          var gaScript = document.createElement('script');
+          gaScript.async = true;
+          gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(cfg.ga4MeasurementId);
+          document.head.appendChild(gaScript);
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () {
+            window.dataLayer.push(arguments);
+          };
+          window.gtag('js', new Date());
+          window.gtag('config', cfg.ga4MeasurementId);
+        }
+
+        if (cfg.clarityProjectId) {
+          (function (c, l, a, r, i, t, y) {
+            c[a] =
+              c[a] ||
+              function () {
+                (c[a].q = c[a].q || []).push(arguments);
+              };
+            t = l.createElement(r);
+            t.async = 1;
+            t.src = 'https://www.clarity.ms/tag/' + i;
+            y = l.getElementsByTagName(r)[0];
+            y.parentNode.insertBefore(t, y);
+          })(window, document, 'clarity', 'script', cfg.clarityProjectId);
+        }
+      })();
+    </script>
   </head>
   <body class="bg-[#070708] text-[#f4efe6] antialiased selection:bg-[#d6c5b3] selection:text-[#09090b] overflow-x-hidden">
     <div id="root"></div>
